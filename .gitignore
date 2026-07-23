@@ -68,5 +68,5 @@ vcpkg_installed/
 Testing/
 .cache/
 
-# VSC workspace
+# VS Code
 *.code-workspace
