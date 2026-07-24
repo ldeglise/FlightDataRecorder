@@ -22,6 +22,7 @@
 *.dylib
 *.dll
 *.so.*
+*.xpl
 
 
 # Fortran module files
@@ -70,3 +71,6 @@ Testing/
 
 # VS Code
 *.code-workspace
+
+# SDK X-Plane
+/SDK

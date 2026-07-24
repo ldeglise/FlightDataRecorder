@@ -1,13 +1,13 @@
-"latitude": "sim/flightmodel/position/latitude",
-        "longitude": "sim/flightmodel/position/longitude",
-        "zulu_sec": "sim/time/zulu_time_sec",
-        "date_days": "sim/time/local_date_days",
-        "alt_msl_m": "sim/flightmodel/position/elevation",
-        "alt_agl_m": "sim/flightmodel/position/y_agl",
-        "heading_true": "sim/flightmodel/position/psi",
-        "heading_mag": "sim/flightmodel/position/mag_psi",
-        "ias_mps": "sim/flightmodel/position/indicated_airspeed",
-        "gs_mps": "sim/flightmodel/position/groundspeed",
-        "engine_power_w": "sim/flightmodel/engine/ENGN_power",
-        "acf_icao": "sim/aircraft/view/acf_ICAO",
-        "acf_name": "sim/aircraft/view/acf_descrip",
+sim/flightmodel/position/latitude
+sim/flightmodel/position/longitude
+sim/time/zulu_time_sec
+sim/time/local_date_days
+sim/flightmodel/position/elevation
+sim/flightmodel/position/y_agl
+sim/flightmodel/position/psi
+sim/flightmodel/position/mag_psi
+sim/flightmodel/position/indicated_airspeed
+sim/flightmodel/position/groundspeed
+sim/flightmodel/engine/ENGN_power
+sim/aircraft/view/acf_ICAO",
+sim/aircraft/view/acf_descrip",
