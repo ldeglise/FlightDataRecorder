@@ -74,3 +74,6 @@ Testing/
 
 # SDK X-Plane
 /SDK
+
+# bin directory
+bin/
