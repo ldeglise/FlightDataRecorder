@@ -90,6 +90,9 @@ add_compile_definitions(
     XPLM210
     XPLM300
     XPLM301
+    XPLM400
+    XPLM411
+    XPLM420
 )
 
 # Platform-specific definitions (REQUIRED by SDK headers)
