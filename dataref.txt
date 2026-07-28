@@ -9,5 +9,5 @@ sim/flightmodel/position/mag_psi
 sim/flightmodel/position/indicated_airspeed
 sim/flightmodel/position/groundspeed
 sim/flightmodel/engine/ENGN_power
-sim/aircraft/view/acf_ICAO",
-sim/aircraft/view/acf_descrip",
+sim/aircraft/view/acf_ICAO
+sim/aircraft/view/acf_descrip
