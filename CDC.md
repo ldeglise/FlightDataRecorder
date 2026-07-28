@@ -41,4 +41,6 @@ Le données suivantes ne seront écrites qu'une seule fois dans le GeoJson sous 
 
 Toutes les autres informations seront écrites toutes les secondes (1hz) dans un buffer qui sera écrit dans le fichier toutes les 20 secondes afin de limiter les accès disque.
 
-L'écriture du GeoJson commencera après détéction du décollage, et prendra fin après détéction de l'atterissage.
+Le fichier GeoJson sera écrit dans le dossier output de X-Plane avec la convention de nommage suivante : ISO_8601.geojson
+
+L'écriture du GeoJson commencera après détection du décollage, et prendra fin après détection de l'atterissage.
