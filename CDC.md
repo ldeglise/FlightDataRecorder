@@ -44,4 +44,9 @@ Toutes les autres informations seront écrites toutes les secondes (1hz) dans un
 
 Le fichier GeoJson sera écrit dans le dossier output de X-Plane avec la convention de nommage suivante : ISO_8601.geojson
 
-L'écriture du GeoJson commencera après détection du décollage, et prendra fin après détection de l'atterissage.
+L'écriture du GeoJson commencera à la détection du décollage, et prendra fin à la détection de l'atterrissage.
+
+les critères de détection sont les suivants :
+
+- décollage : Altitude AGL > 0 et GS > 40 kts pendant au moins 10 secondes.
+- atterrissage : altitude AGL = 0 et GS >= 40 kts pendant au moins 10 secondes.
