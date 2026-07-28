@@ -2,9 +2,9 @@
 
 ## Objectifs
 
-FlightDataRecorder est un plugin natif pour X-Plane 12 et 11. Il est ecrit en C++ et utilise le SDK X-Plane qui semble être écrit en C.
+FlightDataRecorder est un plugin natif pour X-Plane 12 et 11. Il est écrit en C++ (ou en C si plus pertinent) et utilise le SDK X-Plane qui semble être écrit en C.
 
-Ce projet devra être pouvoir être compilé pour X-Plane 12 et 11 sur les cibles suivantes : Windows 10 et 11, Linux, et Mac OS.
+Ce projet devra être pouvoir être compilé pour X-Plane 12 et 11 sur les cibles suivantes : Windows 10 et 11, Linux, et Mac OS sous forme d'un plugin X-Plane avec l'extention .xpl (dll, so, dynalib)
 
 Il devra recupérer les informations suivantes toute les secondes (1hz) :
 
@@ -36,8 +36,9 @@ Le données suivantes ne seront écrites qu'une seule fois dans le GeoJson sous 
 - Aircraft ICAO
 - Aircraft name
 - Number of engines (int)
-- total power (HP)
-- power per engine (HP)
+- Type de moteur (pistons, turboprops, jet)
+- total power (HP quelque soit le type de moteur)
+- power per engine (HP quelque soit le type de moteur)
 
 Toutes les autres informations seront écrites toutes les secondes (1hz) dans un buffer qui sera écrit dans le fichier toutes les 20 secondes afin de limiter les accès disque.
 
