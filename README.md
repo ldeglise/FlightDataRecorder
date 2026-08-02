@@ -8,23 +8,21 @@ The function of this X-Plane 12 plugin is to record specific flight parameters a
 
 - Aircraft ICAO
 - Aircraft name
-- Number of engines (int)
-- total power (HP)
-- power per engine (HP)
-
-- timestampe (LOCAL)
-- timestampe (ZULU)
-
-- longitude (DMS)
-- latitude (DMS)
-- altitude mean sea level (MSL)
-- altitude above ground level (AGL)
+- Number of engines
+- Type of engines
+- Total power
+- Power per engine
+- Timestampe UTC
+- Longitude
+- Latitude
+- Barometric altitude
+- Height above ground
 - QNH
-
-- indicated air speed (IAS)
-- ground speed (GS)
-- vertical speed (FPM)
-- cap (DEG mag)
+- Indicated air speed
+- True air speed
+- Ground speed
+- Vertical speed
+- Cap (DEG mag)
 - heading (DEG true)
 - route mag (DEG mag)
 - route true (DEG true)
