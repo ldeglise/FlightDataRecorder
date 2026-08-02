@@ -8,7 +8,7 @@ class XPlaneDataRefChecker:
     def __init__(self, root):
         self.root = root
         self.root.title("X-Plane 12 DataRef Checker (REST API v3)")
-        self.root.geometry("600x400")
+        self.root.geometry("1025x350")
 
         # Variables
         self.ip_var = tk.StringVar(value="127.0.0.1")
