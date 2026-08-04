@@ -10,8 +10,13 @@ add_definitions(
 )
 
 # --- Répertoire des headers du SDK X-Plane ---
-# À adapter selon l'emplacement de ton SDK (ex: /path/to/XPLMSDK)
-set(XPLM_SDK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/SDK" CACHE PATH "SDK")
+# Spécifiez le chemin via -DXPLM_SDK_PATH=/chemin/vers/SDK lors de la configuration
+# Exemple: cmake .. -DXPLM_SDK_PATH=/opt/XPLMSDK
+set(XPLM_SDK_PATH "" CACHE PATH "Chemin vers le SDK X-Plane (obligatoire)")
+
+if(NOT XPLM_SDK_PATH)
+    message(FATAL_ERROR "Le chemin du SDK X-Plane (XPLM_SDK_PATH) est requis. Spécifiez-le avec -DXPLM_SDK_PATH=/chemin/vers/SDK")
+endif()
 
 # --- Inclusion des headers ---
 include_directories(
@@ -22,10 +27,10 @@ include_directories(
 
 # --- Fichiers sources ---
 set(SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/DataRefManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/GeoJSONWriter.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/FlightDataCollector.cpp
+    main.cpp
+    src/DataRefManager.cpp
+    src/GeoJSONWriter.cpp
+    src/FlightDataCollector.cpp
 )
 
 # --- Nom du plugin (conforme au SDK) ---
