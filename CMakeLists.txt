@@ -22,10 +22,10 @@ include_directories(
 
 # --- Fichiers sources ---
 set(SOURCES
-    main.cpp
-    src/DataRefManager.cpp
-    src/GeoJSONWriter.cpp
-    src/FlightDataCollector.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/DataRefManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/GeoJSONWriter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/FlightDataCollector.cpp
 )
 
 # --- Nom du plugin (conforme au SDK) ---
