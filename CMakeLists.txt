@@ -62,8 +62,13 @@ elseif(UNIX AND NOT APPLE)
         SUFFIX ".xpl"
         OUTPUT_NAME "lin_x64/${PLUGIN_NAME}"
     )
-    find_library(XPLM_LIB XPLM_64 HINTS ${XPLM_SDK_PATH}/Linux)
-    target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
+    # Cherche la bibliothèque XPLM_64 dans le SDK
+    find_library(XPLM_LIB XPLM_64 HINTS ${XPLM_SDK_PATH}/Linux ${XPLM_SDK_PATH}/Libraries/Linux)
+    if(NOT XPLM_LIB)
+        message(WARNING "XPLM_64 library not found. You may need to set XPLM_LIB manually or ensure the SDK is correctly installed.")
+    else()
+        target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
+    endif()
 endif()
 
 # --- Options de compilation ---
