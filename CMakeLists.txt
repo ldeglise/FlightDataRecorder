@@ -10,18 +10,19 @@ add_definitions(
 )
 
 # --- Répertoire des headers du SDK X-Plane ---
-# Spécifiez le chemin via -DXPLM_SDK_PATH=/chemin/vers/SDK lors de la configuration
-# Exemple: cmake .. -DXPLM_SDK_PATH=/opt/XPLMSDK
-set(XPLM_SDK_PATH "" CACHE PATH "Chemin vers le SDK X-Plane (obligatoire)")
+# Le SDK est attendu dans un dossier "SDK/" relatif à la racine du projet
+set(XPLM_SDK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/SDK" CACHE PATH "Chemin vers le SDK X-Plane")
 
-if(NOT XPLM_SDK_PATH)
-    message(FATAL_ERROR "Le chemin du SDK X-Plane (XPLM_SDK_PATH) est requis. Spécifiez-le avec -DXPLM_SDK_PATH=/chemin/vers/SDK")
+# Vérifie que le SDK existe
+if(NOT EXISTS "${XPLM_SDK_PATH}/CHeaders/XPLM/XPLMPlugin.h")
+    message(FATAL_ERROR "Le SDK X-Plane est introuvable dans : ${XPLM_SDK_PATH}. Placez-le dans un dossier SDK/ à la racine du projet.")
 endif()
 
 # --- Inclusion des headers ---
 include_directories(
-    ${XPLM_SDK_PATH}/CHeaders
-    ${XPLM_SDK_PATH}/Libraries
+    ${XPLM_SDK_PATH}/CHeaders/XPLM
+    ${XPLM_SDK_PATH}/CHeaders/Widgets
+    ${XPLM_SDK_PATH}/CHeaders/Wrappers
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
@@ -44,7 +45,11 @@ if(WIN32)
         SUFFIX ".xpl"
         OUTPUT_NAME "win_x64/${PLUGIN_NAME}"
     )
-    target_link_libraries(${PLUGIN_NAME} XPLM_64)
+    find_library(XPLM_LIB XPLM_64 HINTS ${XPLM_SDK_PATH}/Libraries/Win)
+    if(NOT XPLM_LIB)
+        message(FATAL_ERROR "XPLM_64 library not found in ${XPLM_SDK_PATH}/Libraries/Win. Ensure the SDK is correctly installed.")
+    endif()
+    target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
 elseif(APPLE)
     # macOS: Génère un .xpl (Bundle)
     add_library(${PLUGIN_NAME} SHARED ${SOURCES})
@@ -53,7 +58,10 @@ elseif(APPLE)
         OUTPUT_NAME "mac_x64/${PLUGIN_NAME}"
         MACOSX_BUNDLE TRUE
     )
-    find_library(XPLM_FRAMEWORK XPLM HINTS ${XPLM_SDK_PATH}/Mac)
+    find_library(XPLM_FRAMEWORK XPLM HINTS ${XPLM_SDK_PATH}/Libraries/Mac)
+    if(NOT XPLM_FRAMEWORK)
+        message(FATAL_ERROR "XPLM framework not found in ${XPLM_SDK_PATH}/Libraries/Mac. Ensure the SDK is correctly installed.")
+    endif()
     target_link_libraries(${PLUGIN_NAME} ${XPLM_FRAMEWORK} CoreFoundation.framework OpenGL.framework)
 elseif(UNIX AND NOT APPLE)
     # Linux: Génère un .xpl (so)
@@ -62,13 +70,11 @@ elseif(UNIX AND NOT APPLE)
         SUFFIX ".xpl"
         OUTPUT_NAME "lin_x64/${PLUGIN_NAME}"
     )
-    # Cherche la bibliothèque XPLM_64 dans le SDK
-    find_library(XPLM_LIB XPLM_64 HINTS ${XPLM_SDK_PATH}/Linux ${XPLM_SDK_PATH}/Libraries/Linux)
+    find_library(XPLM_LIB XPLM_64 HINTS ${XPLM_SDK_PATH}/Libraries/Lin)
     if(NOT XPLM_LIB)
-        message(WARNING "XPLM_64 library not found. You may need to set XPLM_LIB manually or ensure the SDK is correctly installed.")
-    else()
-        target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
+        message(FATAL_ERROR "XPLM_64 library not found in ${XPLM_SDK_PATH}/Libraries/Lin. Ensure the SDK is correctly installed.")
     endif()
+    target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
 endif()
 
 # --- Options de compilation ---
