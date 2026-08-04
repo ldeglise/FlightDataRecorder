@@ -63,12 +63,12 @@ if(WIN32)
         SUFFIX ".xpl"
         OUTPUT_NAME "win_x64/${PLUGIN_NAME}"
     )
-    # Cherche la bibliothèque Windows (nom réel: XPLM64.dll)
-    find_library(XPLM_LIB XPLM64 HINTS "${SDK_ROOT}/Libraries/Win")
+    # Cherche la bibliothèque Windows (nom réel: XPLM_64.dll)
+    find_library(XPLM_LIB XPLM_64 HINTS "${SDK_ROOT}/Libraries/Win")
     if(NOT XPLM_LIB)
         message(FATAL_ERROR 
-            "Bibliothèque XPLM64 introuvable pour Windows !\n"
-            "Vérifiez que ${SDK_ROOT}/Libraries/Win/XPLM64.dll existe."
+            "Bibliothèque XPLM_64 introuvable pour Windows !\n"
+            "Vérifiez que ${SDK_ROOT}/Libraries/Win/XPLM_64.dll existe."
         )
     endif()
     target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
@@ -81,12 +81,12 @@ elseif(APPLE)
         OUTPUT_NAME "mac_x64/${PLUGIN_NAME}"
         MACOSX_BUNDLE TRUE
     )
-    # Cherche la bibliothèque macOS (nom réel: XPLM64)
-    find_library(XPLM_LIB XPLM64 HINTS "${SDK_ROOT}/Libraries/Mac")
+    # Cherche la bibliothèque macOS (nom réel: XPLM_64)
+    find_library(XPLM_LIB XPLM_64 HINTS "${SDK_ROOT}/Libraries/Mac")
     if(NOT XPLM_LIB)
         message(FATAL_ERROR 
-            "Bibliothèque XPLM64 introuvable pour macOS !\n"
-            "Vérifiez que ${SDK_ROOT}/Libraries/Mac/XPLM64 existe."
+            "Bibliothèque XPLM_64 introuvable pour macOS !\n"
+            "Vérifiez que ${SDK_ROOT}/Libraries/Mac/XPLM_64 existe."
         )
     endif()
     target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB} CoreFoundation.framework OpenGL.framework)
@@ -98,12 +98,12 @@ elseif(UNIX AND NOT APPLE)
         SUFFIX ".xpl"
         OUTPUT_NAME "lin_x64/${PLUGIN_NAME}"
     )
-    # Cherche la bibliothèque Linux (nom réel: XPLM64.so)
-    find_library(XPLM_LIB XPLM64 HINTS "${SDK_ROOT}/Libraries/Lin")
+    # Cherche la bibliothèque Linux (nom réel: XPLM_64.so)
+    find_library(XPLM_LIB XPLM_64 HINTS "${SDK_ROOT}/Libraries/Lin")
     if(NOT XPLM_LIB)
         message(FATAL_ERROR 
-            "Bibliothèque XPLM64 introuvable pour Linux !\n"
-            "Vérifiez que ${SDK_ROOT}/Libraries/Lin/XPLM64.so existe."
+            "Bibliothèque XPLM_64 introuvable pour Linux !\n"
+            "Vérifiez que ${SDK_ROOT}/Libraries/Lin/XPLM_64.so existe."
         )
     endif()
     target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
