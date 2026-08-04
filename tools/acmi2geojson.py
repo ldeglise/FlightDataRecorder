@@ -11,13 +11,15 @@ def parse_acmi_to_geojson(acmi_file_path, geojson_file_path):
     geojson = {
         "type": "FeatureCollection",
         "features": [],
-        "metadata": {}  # Pour stocker les métadonnées globales (ex: informations sur les avions)
+        "metadata": {
+            "aircrafts": {}  # Pour stocker les métadonnées des avions
+        }
     }
 
-    # Dictionnaires pour stocker les trajectoires, les points et les métadonnées
+    # Dictionnaires pour stocker les trajectoires et les points
     trajectories = {}  # Pour les LineString (trajectoires complètes)
     points = []         # Pour les Point (chaque point individuel)
-    aircraft_metadata = {}  # Pour stocker les métadonnées des avions (ICAO, nom, moteurs, etc.)
+    aircraft_metadata = {}  # Pour stocker les métadonnées des avions
 
     # Parser chaque ligne
     for line in lines:
@@ -38,8 +40,8 @@ def parse_acmi_to_geojson(acmi_file_path, geojson_file_path):
                         total_power = float(metadata_values[4].strip())
                         power_per_engine = float(metadata_values[5].strip())
 
-                        # Stocker les métadonnées
-                        aircraft_metadata[metadata_key] = {
+                        # Stocker les métadonnées dans la section metadata
+                        geojson["metadata"]["aircrafts"][metadata_key] = {
                             "Aircraft ICAO": icao,
                             "Aircraft name": name,
                             "Number of engines": num_engines,
@@ -73,44 +75,32 @@ def parse_acmi_to_geojson(acmi_file_path, geojson_file_path):
         pitch = float(parts[19].strip()) if len(parts) > 19 else None  # Pitch (DEG)
         bank = float(parts[20].strip()) if len(parts) > 20 else None  # Bank (DEG)
 
-        # Convertir le temps en timestamp (si nécessaire)
-        try:
-            time = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
-        except ValueError:
-            time = 0  # Valeur par défaut si le format est invalide
-
         # Ajouter le point individuel (Feature de type Point)
-        point_properties = {
-            "id": obj_id,
-            "Timestamp UTC": time_str,
-            "Longitude": lon,
-            "Latitude": lat,
-            "Barometric altitude": baro_alt,
-            "Height above ground": height_agl,
-            "QNH": qnh,
-            "Indicated air speed": ias,
-            "True air speed": tas,
-            "Ground speed": gs,
-            "Vertical speed": vs,
-            "Cap (DEG mag)": cap,
-            "Heading (DEG true)": heading,
-            "Route mag (DEG mag)": route_mag,
-            "Route true (DEG true)": route_true,
-            "Pitch (DEG)": pitch,
-            "Bank (DEG)": bank
-        }
-
-        # Ajouter les métadonnées de l'avion si disponibles
-        if obj_id in aircraft_metadata:
-            point_properties.update(aircraft_metadata[obj_id])
-
         point_feature = {
             "type": "Feature",
             "geometry": {
                 "type": "Point",
                 "coordinates": [lon, lat, baro_alt]
             },
-            "properties": point_properties
+            "properties": {
+                "id": obj_id,
+                "Timestamp UTC": time_str,
+                "Longitude": lon,
+                "Latitude": lat,
+                "Barometric altitude": baro_alt,
+                "Height above ground": height_agl,
+                "QNH": qnh,
+                "Indicated air speed": ias,
+                "True air speed": tas,
+                "Ground speed": gs,
+                "Vertical speed": vs,
+                "Cap (DEG mag)": cap,
+                "Heading (DEG true)": heading,
+                "Route mag (DEG mag)": route_mag,
+                "Route true (DEG true)": route_true,
+                "Pitch (DEG)": pitch,
+                "Bank (DEG)": bank
+            }
         }
         points.append(point_feature)
 
@@ -130,9 +120,6 @@ def parse_acmi_to_geojson(acmi_file_path, geojson_file_path):
                     "max_altitude": baro_alt
                 }
             }
-            # Ajouter les métadonnées de l'avion à la trajectoire
-            if obj_id in aircraft_metadata:
-                trajectories[obj_id]["properties"].update(aircraft_metadata[obj_id])
 
         # Mettre à jour la trajectoire
         trajectories[obj_id]["geometry"]["coordinates"].append([lon, lat, baro_alt])
@@ -148,11 +135,6 @@ def parse_acmi_to_geojson(acmi_file_path, geojson_file_path):
     for trajectory in trajectories.values():
         geojson["features"].append(trajectory)
     geojson["features"].extend(points)
-
-    # Ajouter les métadonnées globales (optionnel, si vous voulez les regrouper)
-    geojson["metadata"] = {
-        "aircrafts": aircraft_metadata
-    }
 
     # Écrire le fichier GeoJSON
     with open(geojson_file_path, 'w') as f:
