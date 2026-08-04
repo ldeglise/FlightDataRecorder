@@ -9,20 +9,38 @@ add_definitions(
     -DXPLM_USE_64_BIT=1  # Obligatoire pour X-Plane 11/12 (64-bit)
 )
 
-# --- Répertoire des headers du SDK X-Plane ---
-# Le SDK est attendu dans un dossier "SDK/" relatif à la racine du projet
-set(XPLM_SDK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/SDK")
+# --- Vérification du SDK X-Plane ---
+# Le SDK doit être placé dans un dossier "SDK/" à la racine du projet.
+# Structure attendue:
+#   SDK/
+#   ├── CHeaders/
+#   │   ├── XPLM/
+#   │   │   ├── XPLMPlugin.h
+#   │   │   ├── XPLMDebug.h
+#   │   │   └── ...
+#   │   ├── Widgets/
+#   │   └── Wrappers/
+#   └── Libraries/
+#       ├── Lin/      (libXPLM_64.so)
+#       ├── Mac/      (XPLM.framework)
+#       └── Win/      (XPLM_64.dll)
 
-# Vérifie que le SDK existe
-if(NOT EXISTS "${XPLM_SDK_PATH}/CHeaders/XPLM/XPLMPlugin.h")
-    message(FATAL_ERROR "Le SDK X-Plane est introuvable dans : ${XPLM_SDK_PATH}. Placez-le dans un dossier SDK/ à la racine du projet.")
+set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/SDK")
+
+# Vérifie que les headers XPLM existent
+if(NOT EXISTS "${SDK_ROOT}/CHeaders/XPLM/XPLMPlugin.h")
+    message(FATAL_ERROR 
+        "Le SDK X-Plane est introuvable !\n"
+        "Placez le dossier SDK (contenant CHeaders/ et Libraries/) à la racine du projet.\n"
+        "Structure attendue: ${SDK_ROOT}/CHeaders/XPLM/XPLMPlugin.h"
+    )
 endif()
 
 # --- Inclusion des headers ---
 include_directories(
-    ${XPLM_SDK_PATH}/CHeaders/XPLM
-    ${XPLM_SDK_PATH}/CHeaders/Widgets
-    ${XPLM_SDK_PATH}/CHeaders/Wrappers
+    ${SDK_ROOT}/CHeaders/XPLM
+    ${SDK_ROOT}/CHeaders/Widgets
+    ${SDK_ROOT}/CHeaders/Wrappers
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
@@ -34,7 +52,7 @@ set(SOURCES
     src/FlightDataCollector.cpp
 )
 
-# --- Nom du plugin (conforme au SDK) ---
+# --- Nom du plugin ---
 set(PLUGIN_NAME "FlightDataRecorder")
 
 # --- Configuration spécifique à la plateforme ---
@@ -45,11 +63,16 @@ if(WIN32)
         SUFFIX ".xpl"
         OUTPUT_NAME "win_x64/${PLUGIN_NAME}"
     )
-    find_library(XPLM_LIB XPLM_64 HINTS ${XPLM_SDK_PATH}/Libraries/Win)
+    # Cherche la bibliothèque Windows
+    find_library(XPLM_LIB XPLM_64 HINTS "${SDK_ROOT}/Libraries/Win")
     if(NOT XPLM_LIB)
-        message(FATAL_ERROR "XPLM_64 library not found in ${XPLM_SDK_PATH}/Libraries/Win. Ensure the SDK is correctly installed.")
+        message(FATAL_ERROR 
+            "Bibliothèque XPLM_64 introuvable pour Windows !\n"
+            "Vérifiez que ${SDK_ROOT}/Libraries/Win/XPLM_64.dll existe."
+        )
     endif()
     target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
+
 elseif(APPLE)
     # macOS: Génère un .xpl (Bundle)
     add_library(${PLUGIN_NAME} SHARED ${SOURCES})
@@ -58,11 +81,16 @@ elseif(APPLE)
         OUTPUT_NAME "mac_x64/${PLUGIN_NAME}"
         MACOSX_BUNDLE TRUE
     )
-    find_library(XPLM_FRAMEWORK XPLM HINTS ${XPLM_SDK_PATH}/Libraries/Mac)
+    # Cherche le framework macOS
+    find_library(XPLM_FRAMEWORK XPLM HINTS "${SDK_ROOT}/Libraries/Mac")
     if(NOT XPLM_FRAMEWORK)
-        message(FATAL_ERROR "XPLM framework not found in ${XPLM_SDK_PATH}/Libraries/Mac. Ensure the SDK is correctly installed.")
+        message(FATAL_ERROR 
+            "Framework XPLM introuvable pour macOS !\n"
+            "Vérifiez que ${SDK_ROOT}/Libraries/Mac/XPLM.framework existe."
+        )
     endif()
     target_link_libraries(${PLUGIN_NAME} ${XPLM_FRAMEWORK} CoreFoundation.framework OpenGL.framework)
+
 elseif(UNIX AND NOT APPLE)
     # Linux: Génère un .xpl (so)
     add_library(${PLUGIN_NAME} SHARED ${SOURCES})
@@ -70,9 +98,13 @@ elseif(UNIX AND NOT APPLE)
         SUFFIX ".xpl"
         OUTPUT_NAME "lin_x64/${PLUGIN_NAME}"
     )
-    find_library(XPLM_LIB XPLM_64 HINTS ${XPLM_SDK_PATH}/Libraries/Lin)
+    # Cherche la bibliothèque Linux
+    find_library(XPLM_LIB XPLM_64 HINTS "${SDK_ROOT}/Libraries/Lin")
     if(NOT XPLM_LIB)
-        message(FATAL_ERROR "XPLM_64 library not found in ${XPLM_SDK_PATH}/Libraries/Lin. Ensure the SDK is correctly installed.")
+        message(FATAL_ERROR 
+            "Bibliothèque XPLM_64 introuvable pour Linux !\n"
+            "Vérifiez que ${SDK_ROOT}/Libraries/Lin/libXPLM_64.so existe."
+        )
     endif()
     target_link_libraries(${PLUGIN_NAME} ${XPLM_LIB})
 endif()
