@@ -98,8 +98,11 @@ elseif(UNIX AND NOT APPLE)
         SUFFIX ".xpl"
         OUTPUT_NAME "lin_x64/${PLUGIN_NAME}"
     )
-    # Cherche la bibliothèque Linux (nom réel: XPLM_64.so)
+    # Cherche la bibliothèque Linux (nom réel: XPLM_64.so, sans préfixe 'lib')
+    # Désactive le préfixe automatique 'lib' pour find_library
+    set(CMAKE_FIND_LIBRARY_PREFIXES "" "lib")
     find_library(XPLM_LIB XPLM_64 HINTS "${SDK_ROOT}/Libraries/Lin")
+    set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
     if(NOT XPLM_LIB)
         message(FATAL_ERROR 
             "Bibliothèque XPLM_64 introuvable pour Linux !\n"
