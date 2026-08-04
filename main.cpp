@@ -14,11 +14,11 @@
 #include <string>
 
 // =============================================================================
-// Forward Declarations (interfaces des classes métiers)
+// Includes des classes métiers
 // =============================================================================
-class DataRefManager;
-class GeoJSONWriter;
-class FlightDataCollector;
+#include "DataRefManager.hpp"
+#include "GeoJSONWriter.hpp"
+#include "FlightDataCollector.hpp"
 
 // =============================================================================
 // Constantes du plugin

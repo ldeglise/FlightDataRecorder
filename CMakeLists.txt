@@ -17,7 +17,7 @@ set(XPLM_SDK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/SDK" CACHE PATH "SDK")
 include_directories(
     ${XPLM_SDK_PATH}/CHeaders
     ${XPLM_SDK_PATH}/Libraries
-    include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 # --- Fichiers sources ---
