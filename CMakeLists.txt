@@ -11,7 +11,7 @@ add_definitions(
 
 # --- Répertoire des headers du SDK X-Plane ---
 # Le SDK est attendu dans un dossier "SDK/" relatif à la racine du projet
-set(XPLM_SDK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/SDK" CACHE PATH "Chemin vers le SDK X-Plane")
+set(XPLM_SDK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/SDK")
 
 # Vérifie que le SDK existe
 if(NOT EXISTS "${XPLM_SDK_PATH}/CHeaders/XPLM/XPLMPlugin.h")
