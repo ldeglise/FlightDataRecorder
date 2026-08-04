@@ -2,7 +2,7 @@
 // GeoJSONWriter.cpp
 // =============================================================================
 #include "GeoJSONWriter.hpp"
-#include <XPLMDebug.h>
+#include <XPLMUtilities.h>
 
 GeoJSONWriter::GeoJSONWriter(const std::string& filename)
     : mFilename(filename), mIsOpen(false) {}
@@ -12,7 +12,8 @@ GeoJSONWriter::~GeoJSONWriter() { Cleanup(); }
 bool GeoJSONWriter::Initialize() {
     mFile.open(mFilename, std::ios::out | std::ios::trunc);
     if (!mFile.is_open()) {
-        XPLMDebugString("GeoJSONWriter: Impossible d'ouvrir le fichier: " + mFilename + "\n");
+        std::string msg = "GeoJSONWriter: Impossible d'ouvrir le fichier: " + mFilename + "\n";
+        XPLMDebugString(msg.c_str());
         return false;
     }
     mIsOpen = true;

@@ -1,17 +1,12 @@
 // =============================================================================
-// Définitions pour la compatibilité SDK X-Plane
-// =============================================================================
-#define XPLM200 1    // Compatibilité X-Plane 10.50+
-#define XPLM210 1    // Compatibilité X-Plane 11.00+
-#define XPLM300 1    // Compatibilité X-Plane 11.50+ et 12+
-#define XPLM_USE_64_BIT 1  // Obligatoire pour X-Plane 11/12 (64-bit)
-
-// =============================================================================
 // Includes SDK X-Plane
 // =============================================================================
+#include <XPLMDefs.h>     // Doit être inclus en premier pour définir PLUGIN_API
 #include <XPLMPlugin.h>
 #include <XPLMProcessing.h>
+#include <XPLMUtilities.h> // Pour XPLMDebugString
 #include <string>
+#include <cstring>        // Pour strncpy
 
 // =============================================================================
 // Includes des classes métiers
@@ -30,7 +25,7 @@ static const char* PLUGIN_DESCRIPTION  = "To do";
 // =============================================================================
 // Variables globales (UNIQUEMENT pour le SDK)
 // =============================================================================
-static XPLMFlightLoopID gFlightLoopId = nullptr;
+static bool gFlightLoopRegistered = false;
 static DataRefManager*     gDataRefManager     = nullptr;
 static GeoJSONWriter*      gGeoJSONWriter      = nullptr;
 static FlightDataCollector* gFlightDataCollector = nullptr;
@@ -77,11 +72,8 @@ PLUGIN_API int XPluginStart(char* outName, char* outSig, char* outDesc) {
         return 0;
     }
 
-    gFlightLoopId = XPLMRegisterFlightLoopCallback(FlightLoopCallback, 1.0f, nullptr);
-    if (!gFlightLoopId) {
-        XPLMDebugString("Flight Data Recorder: Impossible de créer la boucle de vol.\n");
-        return 0;
-    }
+    XPLMRegisterFlightLoopCallback(FlightLoopCallback, 1.0f, nullptr);
+    gFlightLoopRegistered = true;
 
     XPLMDebugString("Flight Data Recorder: Plugin initialisé.\n");
     return 1;
@@ -91,9 +83,9 @@ PLUGIN_API int XPluginStart(char* outName, char* outSig, char* outDesc) {
 // XPluginEnable
 // =============================================================================
 PLUGIN_API int XPluginEnable(void) {
-    if (!gFlightLoopId) {
-        gFlightLoopId = XPLMRegisterFlightLoopCallback(FlightLoopCallback, 1.0f, nullptr);
-        if (!gFlightLoopId) return 0;
+    if (!gFlightLoopRegistered) {
+        XPLMRegisterFlightLoopCallback(FlightLoopCallback, 1.0f, nullptr);
+        gFlightLoopRegistered = true;
     }
     return 1;
 }
@@ -102,9 +94,9 @@ PLUGIN_API int XPluginEnable(void) {
 // XPluginDisable
 // =============================================================================
 PLUGIN_API void XPluginDisable(void) {
-    if (gFlightLoopId) {
-        XPLMUnregisterFlightLoopCallback(gFlightLoopId, nullptr);
-        gFlightLoopId = nullptr;
+    if (gFlightLoopRegistered) {
+        XPLMUnregisterFlightLoopCallback(FlightLoopCallback, nullptr);
+        gFlightLoopRegistered = false;
     }
 }
 

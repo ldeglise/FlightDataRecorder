@@ -2,7 +2,8 @@
 // FlightDataCollector.cpp
 // =============================================================================
 #include "FlightDataCollector.hpp"
-#include <XPLMDebug.h>
+#include <XPLMUtilities.h>
+#include <XPLMProcessing.h> // Pour XPLMGetElapsedRealTime
 
 FlightDataCollector::FlightDataCollector(DataRefManager* dataRefManager, GeoJSONWriter* geoJSONWriter)
     : mDataRefManager(dataRefManager), mGeoJSONWriter(geoJSONWriter) {}
@@ -36,7 +37,7 @@ void FlightDataCollector::Update(float deltaTime) {
     point.heading     = mDataRefManager->GetDataRefValue("sim/flightmodel/position/psi");
     point.ias         = mDataRefManager->GetDataRefValue("sim/flightmodel/position/indicated_airspeed");
     point.gs          = mDataRefManager->GetDataRefValue("sim/flightmodel/position/groundspeed");
-    point.timestamp   = static_cast<double>(XPLMGetElapsedRealTime());
+    point.timestamp   = static_cast<double>(XPLMGetElapsedTime());
 
     mFlightDataBuffer.push_back(point);
     mTimeSinceLastWrite += deltaTime;

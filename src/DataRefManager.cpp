@@ -2,7 +2,7 @@
 // DataRefManager.cpp
 // =============================================================================
 #include "DataRefManager.hpp"
-#include <XPLMDebug.h>
+#include <XPLMUtilities.h>
 
 DataRefManager::DataRefManager() = default;
 DataRefManager::~DataRefManager() { Cleanup(); }
@@ -28,7 +28,8 @@ void DataRefManager::Cleanup() {
 float DataRefManager::GetDataRefValue(const std::string& refName) const {
     auto it = mDataRefs.find(refName);
     if (it == mDataRefs.end()) {
-        XPLMDebugString("DataRefManager: DataRef non trouvée: " + refName + "\n");
+        std::string msg = "DataRefManager: DataRef non trouvée: " + refName + "\n";
+        XPLMDebugString(msg.c_str());
         return 0.0f;
     }
     return XPLMGetDataf(it->second);
@@ -37,7 +38,8 @@ float DataRefManager::GetDataRefValue(const std::string& refName) const {
 bool DataRefManager::RegisterDataRef(const std::string& refName) {
     XPLMDataRef ref = XPLMFindDataRef(refName.c_str());
     if (!ref) {
-        XPLMDebugString("DataRefManager: DataRef introuvable: " + refName + "\n");
+        std::string msg = "DataRefManager: DataRef introuvable: " + refName + "\n";
+        XPLMDebugString(msg.c_str());
         return false;
     }
     mDataRefs[refName] = ref;
