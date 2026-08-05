@@ -71,3 +71,6 @@ Testing/
 
 # VS Code
 *.code-workspace
+
+# SDK X-Plane
+SDK/
