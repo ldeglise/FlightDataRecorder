@@ -12,11 +12,16 @@ include_directories(
 )
 
 # Ajouter le fichier source
-add_library(FlightDataRecorder MODULE main.cpp)
+add_library(FlightDataRecorder MODULE 
+    main.cpp
+    DataRefManager.cpp
+    FlightDataCollector.cpp
+    GeoJSONWriter.cpp
+)
 
 # Configuration pour Windows
 if(WIN32)
-    # set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/Win")
+    set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/Win")
     set_target_properties(FlightDataRecorder
         PROPERTIES
             PREFIX ""
@@ -33,7 +38,7 @@ endif()
 
 # Configuration pour Linux
 if(UNIX AND NOT APPLE)
-   # set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/Lin")   
+    set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/Lin")   
     set_target_properties(FlightDataRecorder
         PROPERTIES
             PREFIX ""
@@ -50,7 +55,7 @@ endif()
 
 # Configuration pour macOS
 if(APPLE)
-    # set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/Mac")
+    set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/Mac")
     set_target_properties(FlightDataRecorder
         PROPERTIES
             PREFIX ""
