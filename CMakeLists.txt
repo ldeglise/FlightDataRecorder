@@ -19,6 +19,7 @@ if(WIN32)
     set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/win")
     set_target_properties(FlightDataRecorder
         PROPERTIES
+            PREFIX ""
             OUTPUT_NAME "fdr"
             SUFFIX ".xpl"
             LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_ROOT}/plugin/FlightDataRecorder/win_X64"
@@ -31,6 +32,7 @@ if(UNIX AND NOT APPLE)
     set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/lin")
     set_target_properties(FlightDataRecorder
         PROPERTIES
+            PREFIX ""
             OUTPUT_NAME "fdr"
             SUFFIX ".xpl"
             LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_ROOT}/plugin/FlightDataRecorder/lin_X64"
@@ -43,6 +45,7 @@ if(APPLE)
     set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/mac")
     set_target_properties(FlightDataRecorder
         PROPERTIES
+            PREFIX ""
             OUTPUT_NAME "fdr"
             SUFFIX ".xpl"
             LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_ROOT}/plugin/FlightDataRecorder/mac_X64"
