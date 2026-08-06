@@ -24,7 +24,7 @@ if(WIN32)
             SUFFIX ".xpl"
             LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_ROOT}/plugin/FlightDataRecorder/win_X64"
     )
-    target_link_libraries(FlightDataRecorder PRIVATE XPLM_64 XPWidgets_64)
+    target_link_libraries(FlightDataRecorder PRIVATE XPLM_64.dll XPWidgets_64.dll)
 endif()
 
 # Configuration pour Linux
@@ -37,7 +37,7 @@ if(UNIX AND NOT APPLE)
             SUFFIX ".xpl"
             LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_ROOT}/plugin/FlightDataRecorder/lin_X64"
     )
-    target_link_libraries(FlightDataRecorder PRIVATE XPLM_64 XPWidgets_64)
+    target_link_libraries(FlightDataRecorder PRIVATE XPLM_64.so XPWidgets_64.so)
 endif()
 
 # Configuration pour macOS
@@ -50,5 +50,5 @@ if(APPLE)
             SUFFIX ".xpl"
             LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_ROOT}/plugin/FlightDataRecorder/mac_X64"
     )
-    target_link_libraries(FlightDataRecorder PRIVATE XPLM XPWidgets)
+    target_link_libraries(FlightDataRecorder PRIVATE XPLM.framework XPWidgets.framework)
 endif()
