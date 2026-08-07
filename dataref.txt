@@ -1,14 +1,14 @@
-sim/aircraft/view/acf_ICAO
-sim/aircraft/view/acf_descrip
+acf icao        sim/aircraft/view/acf_ICAO
+acf name        sim/aircraft/view/acf_descrip
 
-sim/flightmodel/position/latitude
-sim/flightmodel/position/longitude
 sim/time/zulu_time_sec
 sim/time/local_date_days
-sim/flightmodel/position/elevation
-sim/flightmodel/position/y_agl
-sim/flightmodel/position/psi
-sim/flightmodel/position/mag_psi
-sim/flightmodel/position/indicated_airspeed
-sim/flightmodel/position/groundspeed
+lon             sim/flightmodel/position/longitude
+lat             sim/flightmodel/position/latitude
+msl             sim/flightmodel/position/elevation
+agl             sim/flightmodel/position/y_agl
+true heading    sim/flightmodel/position/psi
+mag heading     sim/flightmodel/position/mag_psi
+ias             sim/flightmodel/position/indicated_airspeed
+gs              sim/flightmodel/position/groundspeed
 sim/flightmodel/engine/ENGN_power
