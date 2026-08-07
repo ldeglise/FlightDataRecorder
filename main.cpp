@@ -1,17 +1,4 @@
-/*
- * TimedProcessing.c
- * 
- * This example plugin demonstrates how to use the timed processing callbacks
- * to continuously record sim data to disk.
- * 
- * This technique can be used to record data to disk or to the network.  Unlike
- * UDP data output, we can increase our frequency to capture data every single
- * sim frame.  (This example records once per second.)
- * 
- * Use the timed processing APIs to do any periodic or asynchronous action in
- * your plugin.
- * 
- */
+
 
 #define XPLM430
 #define XPLM420
