@@ -13,12 +13,6 @@
  * 
  */
 
-#if APL
-#if defined(__MACH__)
-#include <Carbon/Carbon.h>
-#endif
-#endif
-
 #define XPLM430
 #define XPLM420
 #define XPLM411
@@ -30,20 +24,8 @@
 #include "XPLMDataAccess.h"
 #include "XPLMUtilities.h"
 
-/* File to write data to. */
-static FILE *	gOutputFile;
 
-/* Data refs we will record. */
-static XPLMDataRef		gPlaneLat;
-static XPLMDataRef		gPlaneLon;
-static XPLMDataRef		gPlaneEl;
-
-#if APL && __MACH__
-static int ConvertPath(const char * inPath, char * outPath, int outPathMaxLen);
-#endif
-
-
-static float	MyFlightLoopCallback(
+static float	FlightDataRecorderCallback(
                                    float                inElapsedSinceLastCall,    
                                    float                inElapsedTimeSinceLastFlightLoop,    
                                    int                  inCounter,    
@@ -55,42 +37,15 @@ PLUGIN_API int XPluginStart(
 						char *		outSig,
 						char *		outDesc)
 {
-	char	outputPath[255];
-	#if APL && __MACH__
-	char outputPath2[255];
-	int Result = 0;
-	#endif
-		
-	strcpy(outName, "TimedProcessing");
-	strcpy(outSig, "xplanesdk.examples.timedprocessing");
-	strcpy(outDesc, "A plugin that records sim data.");
-
-	/* Open a file to write to.  We locate the X-System directory 
-	 * and then concatenate our file name.  This makes us save in
-	 * the X-System directory.  Open the file. */
-	XPLMGetSystemPath(outputPath);
-	strcat(outputPath, "TimedProcessing.txt");
-
-	#if APL && __MACH__
-	Result = ConvertPath(outputPath, outputPath2, sizeof(outputPath));
-	if (Result == 0)
-		strcpy(outputPath, outputPath2);
-	else
-		XPLMDebugString("TimedProccessing - Unable to convert path\n");
-	#endif
-	
-	gOutputFile = fopen(outputPath, "w");
-
-	/* Find the data refs we want to record. */
-	gPlaneLat = XPLMFindDataRef("sim/flightmodel/position/latitude");
-	gPlaneLon = XPLMFindDataRef("sim/flightmodel/position/longitude");
-	gPlaneEl = XPLMFindDataRef("sim/flightmodel/position/elevation");
+	strcpy(outName, "Flight Data Recorder");
+	strcpy(outSig, "xplane.FlightDataRecorder");
+	strcpy(outDesc, "A plugin that allows data to be recorded and written to a GeoJSON file.");
 
 	/* Register our callback for once a second.  Positive intervals
 	 * are in seconds, negative are the negative of sim frames.  Zero
 	 * registers but does not schedule a callback for time. */
 	XPLMRegisterFlightLoopCallback(		
-			MyFlightLoopCallback,	/* Callback */
+			FlightDataRecorderCallback,	/* Callback */
 			1.0,					/* Interval */
 			NULL);					/* refcon not used. */
 			
@@ -100,17 +55,12 @@ PLUGIN_API int XPluginStart(
 PLUGIN_API void	XPluginStop(void)
 {
 	/* Unregister the callback */
-	XPLMUnregisterFlightLoopCallback(MyFlightLoopCallback, NULL);
-	
-	/* Close the file */
-	fclose(gOutputFile);
+	XPLMUnregisterFlightLoopCallback(FlightDataRecorderCallback, NULL);
 }
 
 PLUGIN_API void XPluginDisable(void)
 {
-	/* Flush the file when we are disabled.  This is convenient; you 
-	 * can disable the plugin and then look at the output on disk. */
-	fflush(gOutputFile);
+	
 }
 
 PLUGIN_API int XPluginEnable(void)
@@ -125,41 +75,16 @@ PLUGIN_API void XPluginReceiveMessage(
 {
 }
 
-float	MyFlightLoopCallback(
+float	FlightDataRecorderCallback(
                                    float                inElapsedSinceLastCall,    
                                    float                inElapsedTimeSinceLastFlightLoop,    
                                    int                  inCounter,    
                                    void *               inRefcon)
 {
-	/* The actual callback.  First we read the sim's time and the data. */
-	float	elapsed = XPLMGetElapsedTime();
-	float	lat = XPLMGetDataf(gPlaneLat);
-	float	lon = XPLMGetDataf(gPlaneLon);
-	float	el = XPLMGetDataf(gPlaneEl);
-	
-	/* Write the data to a file. */
-	fprintf(gOutputFile, "Time=%f, lat=%f,lon=%f,el=%f.\n",elapsed, lat, lon, el);
+	/* Do something with callback */
 	
 	/* Return 1.0 to indicate that we want to be called again in 1 second. */
 	return 1.0;
 }                                   
-
-#if APL && __MACH__
-#include <Carbon/Carbon.h>
-int ConvertPath(const char * inPath, char * outPath, int outPathMaxLen)
-{
-	CFStringRef inStr = CFStringCreateWithCString(kCFAllocatorDefault, inPath ,kCFStringEncodingMacRoman);
-	if (inStr == NULL)
-		return -1;
-	CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, inStr, kCFURLHFSPathStyle,0);
-	CFStringRef outStr = CFURLCopyFileSystemPath(url, kCFURLPOSIXPathStyle);
-	if (!CFStringGetCString(outStr, outPath, outPathMaxLen, kCFURLPOSIXPathStyle))
-		return -1;
-	CFRelease(outStr);
-	CFRelease(url);
-	CFRelease(inStr); 	
-	return 0;
-}
-#endif
 
 
