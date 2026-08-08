@@ -37,16 +37,16 @@
 
 - Les **points de mesure** (toutes les secondes) **avec les unités des *datarefs***.
 - La **trace du vol** (ligne connectant les points).
-- Les **métadonnées** (modèle d’appareil, OACI, nombre de moteurs, puissance totale). |
+- Les **métadonnées** (modèle d’appareil, OACI, nombre de moteurs, puissance totale qui est la somme de la puissance unitaire d'un moteur multipliée par le nombre de moteur (acf_pmax * acf_num_engines) ). |
  | **F5** | **Détection automatique du décollage** | Détecter le décollage lorsque :
 - **Altitude AGL** (convertie en pieds) > **50 pieds**.
 - **Vitesse indiquée (IAS)** (convertie en nœuds) > **55 nœuds**.
-- **Durée minimale** : Les conditions doivent être maintenues **pendant 10 secondes** pour éviter les fausses détections (rebonds).
+- **Durée minimale** : Les conditions doivent être maintenues **pendant 7 secondes** pour éviter les fausses détections (rebonds).
 **Les conversions en pieds et nœuds sont effectuées en interne par le plugin.** |
  | **F6** | **Détection automatique de l’atterrissage** | Détecter l’atterrissage lorsque :
 - **Altitude AGL** (convertie en pieds) < **10 pieds**.
 - **Vitesse indiquée (IAS)** (convertie en nœuds) < **30 nœuds**.
-- **Durée minimale** : Les conditions doivent être maintenues **pendant 10 secondes** pour éviter les fausses détections (rebonds). |
+- **Durée minimale** : Les conditions doivent être maintenues **pendant 7 secondes** pour éviter les fausses détections (rebonds). |
  | **F7** | **Gestion des fichiers** | Créer un dossier **`FlightDataRecorder`** dans le répertoire utilisateur :
 - Linux : `/home/<user>/FlightDataRecorder/`
 - Windows : `C:\Users\<user>\FlightDataRecorder\`
@@ -86,12 +86,35 @@ Le nom des fichiers suit le format : `<ALÉA>_AAAA-MM-JJTHH:mm:SS.geojson` (ex: 
 
 - **Toutes les *datarefs* listées ci-dessus doivent être monitorées**.
 - **Enregistrement dans le GeoJSON** :
-  - **Altitude barométrique (MSL)** est **la seule altitude enregistrée** dans les points de mesure.
-  - **Altitude AGL** est **uniquement utilisée pour la détection des phases de vol** (décollage/atterrissage).
+- **Altitude barométrique (MSL)** est **la seule altitude enregistrée** dans les points de mesure.
+- **Altitude AGL** est **uniquement utilisée pour la détection des phases de vol** (décollage/atterrissage).
 - **Les unités dans le GeoJSON sont strictement celles des *datarefs*** (mètres pour MSL, km/h pour les vitesses, etc.).
 - **Les conversions en pieds et nœuds** (pour la détection des phases de vol) sont **effectuées en interne par le plugin** et **ne sont pas stockées** dans le GeoJSON.
 - **Pas de stockage avant décollage** : Les données sont **monitorées mais non stockées** tant que l’avion n’a pas décollé.
 - **Horodatage ISO 8601** : Construit à partir de `sim/time/zulu_time_sec` et `sim/time/local_date_days`.
+
+## Références
+
+<https://developer.x-plane.com/sdk/>
+<https://developer.x-plane.com/datarefs/>
+
+- Code OACI de l'appareil               dataref : "sim/aircraft/view/acf_ICAO"                      (string)
+- Modèle d'appareil                     dataref : "sim/aircraft/view/acf_ui_name"                   (string)
+- Nombre de moteurs                     dataref : "sim/aircraft/engine/acf_num_engines"             (int)
+- Puissance totale par moteur           dataref : "sim/aircraft/engine/acf_pmax"                    (float)(watts)
+- Secondes depuis minuit Zulu           dataref : "sim/time/zulu_time_sec"                          (float)(secondes)
+- Jours depuis le 1er janvier (local)   dataref : "sim/time/local_date_days"                        (int)(jours)
+- Longitude                             dataref : "sim/flightmodel/position/longitude"              (double)(degrés décimaux)
+- Latitude                              dataref : "sim/flightmodel/position/latitude"               (double)(degrés décimaux)
+- Altitude barométrique (MSL)           dataref : "sim/flightmodel/position/elevation"              (double)(mètres)
+- Hauteur (AGL)                         dataref : "sim/flightmodel/position/y_agl"                  (float)(mètres)
+- Cap vrai                              dataref : "sim/flightmodel/position/psi"                    (float)(degrés)
+- Cap magnétique                        dataref : "sim/flightmodel/position/mag_psi"                (float)(degrés)
+- Vitesse indiquée                      dataref : "sim/flightmodel/position/indicated_airspeed"     (float)(km/h)
+- Vitesse sol                           dataref : "sim/flightmodel/position/groundspeed"            (float)(km/h)
+
+<https://datatracker.ietf.org/doc/html/rfc7946>
+<https://fr.wikipedia.org/wiki/ISO_8601>
 
 ---
 
