@@ -29,9 +29,9 @@ if(WIN32)
     set_target_properties(FlightDataRecorder
         PROPERTIES
             PREFIX ""
-            OUTPUT_NAME "fdr"
+            OUTPUT_NAME "win"
             SUFFIX ".xpl"
-            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/win_x64"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/64"
     )
     target_compile_definitions(FlightDataRecorder PUBLIC APL=0 IBM=1 LIN=0)
     target_link_libraries(FlightDataRecorder PRIVATE 
@@ -46,9 +46,9 @@ if(UNIX AND NOT APPLE)
     set_target_properties(FlightDataRecorder
         PROPERTIES
             PREFIX ""
-            OUTPUT_NAME "fdr"
+            OUTPUT_NAME "lin"
             SUFFIX ".xpl"
-            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/lin_x64"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/64"
     )
     target_compile_definitions(FlightDataRecorder PUBLIC APL=0 IBM=0 LIN=1)
     target_link_libraries(FlightDataRecorder PRIVATE 
@@ -64,9 +64,9 @@ if(APPLE)
     set_target_properties(FlightDataRecorder
         PROPERTIES
             PREFIX ""
-            OUTPUT_NAME "fdr"
+            OUTPUT_NAME "mac"
             SUFFIX ".xpl"
-            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/mac_x64"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/64"
     )
     target_compile_definitions(FlightDataRecorder PUBLIC APL=1 IBM=0 LIN=0)
     target_link_libraries(FlightDataRecorder PRIVATE 
