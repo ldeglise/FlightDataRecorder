@@ -18,6 +18,6 @@ public:
     static float kmhToKnots(float kmh) { return kmh * 0.539957f; }
 
 private:
-    std::unordered_map<std::string, int> dataRefs; // XPLMDataRef est un int dans le SDK
-    int getDataRef(const std::string& datarefName);
+    std::unordered_map<std::string, XPLMDataRef> dataRefs;
+    XPLMDataRef getDataRef(const std::string& datarefName);
 };
