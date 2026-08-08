@@ -16,10 +16,20 @@ Le plugin natif FlightDataRecorder a pour ambition de palier à ce manque en pro
 
 ### Périmètre de monitoring
 
-- Code OACI de l'appareil               dataref : "sim/aircraft/view/acf_ICAO"          (string)
-- Modèle d'appareil                     dataref : "sim/aircraft/view/acf_descrip"       (string)
-- Nombre de moteurs                     dataref : "sim/aircraft/engine/acf_num_engines" (int)
-- Puissance totale des moteurs          dataref : "sim/aircraft/engine/acf_pmax"        (float)(watts)
+- Code OACI de l'appareil               dataref : "sim/aircraft/view/acf_ICAO"                      (string)
+- Modèle d'appareil                     dataref : "sim/aircraft/view/acf_ui_name"                   (string)
+- Nombre de moteurs                     dataref : "sim/aircraft/engine/acf_num_engines"             (int)
+- Puissance totale par moteur           dataref : "sim/aircraft/engine/acf_pmax"                    (float)(watts)
+- Secondes depuis minuit Zulu           dataref : "sim/time/zulu_time_sec"                          (float)(secondes)
+- Jours depuis le 1er janvier (local)   dataref : "sim/time/local_date_days"                        (int)(jours)
+- Longitude                             dataref : "sim/flightmodel/position/longitude"              (double)(degrés décimaux)
+- Latitude                              dataref : "sim/flightmodel/position/latitude"               (double)(degrés décimaux)
+- Altitude barométrique (MSL)           dataref : "sim/flightmodel/position/elevation"              (double)(mètres)
+- Hauteur (AGL)                         dataref : "sim/flightmodel/position/y_agl"                  (float)(mètres)
+- Cap vrai                              dataref : "sim/flightmodel/position/psi"                    (float)(degrés)
+- Cap magnétique                        dataref : "sim/flightmodel/position/mag_psi"                (float)(degrés)
+- Vitesse indiquée                      dataref : "sim/flightmodel/position/indicated_airspeed"     (float)(km/h)
+- Vitesse sol                           dataref : "sim/flightmodel/position/groundspeed"            (float)(km/h)
 
 ### Cibles
 
