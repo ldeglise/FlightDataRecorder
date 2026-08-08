@@ -25,7 +25,7 @@ PLUGIN_API int XPluginStart(
 						char *		outDesc)
 {
 	strcpy(outName, "Flight Data Recorder");
-	strcpy(outSig, "xplane.FlightDataRecorder");
+	strcpy(outSig, "conconlolo.FlightDataRecorder");
 	strcpy(outDesc, "A plugin that allows data to be recorded and written to a GeoJSON file.");
 
 	/* Register our callback for once a second.  Positive intervals

@@ -31,8 +31,8 @@ if(WIN32)
     )
     target_compile_definitions(FlightDataRecorder PUBLIC APL=0 IBM=1 LIN=0)
     target_link_libraries(FlightDataRecorder PRIVATE 
-        "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPLM_64.dll"
-        "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPWidgets_64.dll"
+        "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPLM_64.lib"
+        "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPWidgets_64.lib"
     )
 endif()
 
