@@ -11,6 +11,10 @@ include_directories(
     ${XPLM_SDK_PATH}/CHeaders/Wrappers
 )
 
+# Activer C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Ajouter le fichier source
 add_library(FlightDataRecorder MODULE 
     main.cpp
@@ -38,7 +42,7 @@ endif()
 
 # Configuration pour Linux
 if(UNIX AND NOT APPLE)
-    set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/Lin")   
+    set(LIBRARY_DIR "${XPLM_SDK_PATH}/Libraries/Lin")  
     set_target_properties(FlightDataRecorder
         PROPERTIES
             PREFIX ""
@@ -50,6 +54,7 @@ if(UNIX AND NOT APPLE)
     target_link_libraries(FlightDataRecorder PRIVATE 
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Lin/XPLM_64.so"
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Lin/XPWidgets_64.so"
+        stdc++fs  # Pour std::filesystem sous Linux
     )
 endif()
 
