@@ -14,6 +14,17 @@ Le plugin natif FlightDataRecorder a pour ambition de palier à ce manque en pro
 
 ## Périmètre et cibles
 
+### Périmètre de monitoring
+
+- Code OACI de l'appareil               dataref : "sim/aircraft/view/acf_ICAO"          (string)
+- Modèle d'appareil                     dataref : "sim/aircraft/view/acf_descrip"       (string)
+- Nombre de moteurs                     dataref : "sim/aircraft/engine/acf_num_engines" (int)
+- Puissance totale des moteurs          dataref : "sim/aircraft/engine/acf_pmax"        (float)(watts)
+
+### Cibles
+
+Plugin natif pour X-Plane 12, et X-Plane 11 sur les OS Windows, Linux, et Mac OS.
+
 ### Utilisateurs finaux ou publics concernés
 
 ### Limites de ce qui est inclus ou exclu du projet
