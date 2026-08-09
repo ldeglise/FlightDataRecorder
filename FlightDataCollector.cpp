@@ -84,38 +84,14 @@ std::string FlightDataCollector::convertZuluTime(float zulu_time_sec) const {
     return oss.str();
 }
 
-// Helper pour lire une string dataref avec fallback
-std::string FlightDataCollector::tryGetAircraftString(DataRefManager& manager, const std::string& primary, const std::string& fallback) const {
-    try {
-        std::string value = manager.getStringDataRef(primary);
-        if (!value.empty() && value != " " && value.find_first_not_of(" ") != std::string::npos) {
-            return value;
-        }
-    } catch (...) {
-        // Dataref non trouvée, essayer le fallback
-    }
-    
-    try {
-        std::string value = manager.getStringDataRef(fallback);
-        if (!value.empty() && value != " " && value.find_first_not_of(" ") != std::string::npos) {
-            return value;
-        }
-    } catch (...) {
-        // Retourner vide si les deux échouent
-    }
-    
-    return "";
-}
-
 bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
-    float agl_feet = DataRefManager::metersToFeet(agl);
-    int onground = manager.getIntDataRef("sim/flightmodel/position/onground");
     
-    // Détection universelle : AGL > 10 pieds ET onground == 0 pendant 3 secondes
-    if (agl_feet > 10.0f && onground == 0) {
+    // Détection universelle : AGL > 10 mètres pendant 10 secondes
+    // 10 mètres = 32.8 pieds, mais on compare directement en mètres
+    if (agl > 10.0f) {
         takeoffCounter++;
-        return takeoffCounter >= 3;
+        return takeoffCounter >= 10;
     } else {
         takeoffCounter = 0;
         return false;
@@ -123,13 +99,12 @@ bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
 }
 
 bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
-    float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
-    int onground = manager.getIntDataRef("sim/flightmodel/position/onground");
+    float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     
-    // Détection d'atterrissage : onground == 1 ET vitesse très faible
-    if (onground == 1 && ias < 20.0f) {
+    // Détection d'atterrissage : AGL < 1 mètre pendant 30 secondes
+    if (agl < 1.0f) {
         landingCounter++;
-        return landingCounter >= 5;
+        return landingCounter >= 30;
     } else {
         landingCounter = 0;
         return false;
@@ -146,17 +121,7 @@ bool FlightDataCollector::isFlightEnded() const {
 }
 
 void FlightDataCollector::collectData(DataRefManager& manager) {
-    // Monitorer les métadonnées avion à chaque callback
-    metadata.aircraft_icao = tryGetAircraftString(manager,
-        "sim/aircraft/view/acf_ICAO",
-        "sim/aircraft/engine/acf_ICAO"
-    );
-    
-    metadata.aircraft_model = tryGetAircraftString(manager,
-        "sim/aircraft/view/acf_ui_name",
-        "sim/aircraft/view/acf_descrip"
-    );
-    
+    // Lire les métadonnées moteur (num_engines et total_power)
     try {
         metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
     } catch (...) {
@@ -172,9 +137,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         // Garder la valeur précédente si erreur
     }
 
-    int onground = manager.getIntDataRef("sim/flightmodel/position/onground");
-
-    // 1. Détecter le décollage (initial ou après une pause)
+    // 1. Détecter le décollage
     if (!flightActive && isTakeoffDetected(manager)) {
         flightActive = true;
         flightPaused = false;
@@ -198,12 +161,10 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             return;
         }
         
-        // Écrire l'en-tête GeoJSON
+        // Écrire l'en-tête GeoJSON (SANS aircraft_icao et aircraft_model)
         currentFile << "{\n";
         currentFile << "  \"type\": \"FeatureCollection\",\n";
         currentFile << "  \"metadata\": {\n";
-        currentFile << "    \"aircraft_icao\": \"" << metadata.aircraft_icao << "\",\n";
-        currentFile << "    \"aircraft_model\": \"" << metadata.aircraft_model << "\",\n";
         currentFile << "    \"num_engines\": " << metadata.num_engines << ",\n";
         currentFile << "    \"total_power\": " << metadata.total_power << ",\n";
         currentFile << "    \"takeoff_time\": \"" << metadata.takeoff_time << "\"\n";
@@ -285,14 +246,14 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
             
             point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
-            point.zulu_time = convertZuluTime(point.zulu_time_sec); // Conversion en HH:mm:ss
+            point.zulu_time = convertZuluTime(point.zulu_time_sec);
             point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
             point.timestamp = generateTimestamp();
 
             // Stocker le point dans le buffer pour la LineString finale
             pointsBuffer.push_back(point);
 
-            // Écrire UNIQUEMENT le Point Feature (pas de LineString pendant le vol)
+            // Écrire UNIQUEMENT le Point Feature
             if (currentFile.is_open()) {
                 // Ajouter une virgule si ce n'est pas le premier point
                 if (!pointsBuffer.empty() && pointsBuffer.size() > 1) {
