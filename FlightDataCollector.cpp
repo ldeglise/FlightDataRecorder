@@ -120,17 +120,17 @@ bool FlightDataCollector::isFlightEnded() const {
 }
 
 void FlightDataCollector::collectData(DataRefManager& manager) {
-    // Lire les métadonnées moteur (e = num_engines, p = total_power en watts)
+    // Lire les métadonnées moteur (seed = num_engines, checksum = total_power en watts)
     try {
-        metadata.e = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
+        metadata.seed = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
     } catch (...) {
         // Garder la valeur précédente si erreur
     }
     
     try {
-        if (metadata.e > 0) {
+        if (metadata.seed > 0) {
             float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
-            metadata.p = pmax * metadata.e; // Puissance totale en watts
+            metadata.checksum = pmax * metadata.seed; // Puissance totale en watts
         }
     } catch (...) {
         // Garder la valeur précédente si erreur
@@ -164,9 +164,9 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         currentFile << "{\n";
         currentFile << "  \"type\": \"FeatureCollection\",\n";
         currentFile << "  \"metadata\": {\n";
-        currentFile << "    \"e\": " << metadata.e << ",\n";      // Nombre de moteurs
-        currentFile << "    \"p\": " << metadata.p << ",\n";      // Puissance totale en watts
-        currentFile << "    \"t\": \"" << metadata.takeoff_time << "\"\n"; // takeoff_time
+        currentFile << "    \"seed\": " << metadata.seed << ",\n";        // Nombre de moteurs
+        currentFile << "    \"checksum\": " << metadata.checksum << ",\n"; // Puissance totale en watts
+        currentFile << "    \"takeoff_time\": \"" << metadata.takeoff_time << "\"\n";
         currentFile << "  },\n";
         currentFile << "  \"features\": [\n";
         
@@ -221,14 +221,14 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 currentFilePath.clear();
             }
             // Sinon, on reste en pause (atterrissage temporaire)
-            return; // Ne pas écrire de points pendant la pause
+            return;
         }
         
         // Si on était en pause et qu'on redécolle
         if (flightPaused && isTakeoffDetected(manager)) {
             flightPaused = false;
             takeoffCounter = 0;
-            return; // Le point sera écrit au prochain callback
+            return;
         }
 
         // 3. Écrire les données (si pas en pause)
@@ -240,7 +240,6 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
             point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
             
-            // X-Plane fournit les vitesses en km/h - stocker sans conversion
             point.ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
             point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
             
@@ -249,12 +248,9 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
             point.timestamp = generateTimestamp();
 
-            // Stocker le point dans le buffer pour la LineString finale
             pointsBuffer.push_back(point);
 
-            // Écrire UNIQUEMENT le Point Feature
             if (currentFile.is_open()) {
-                // Ajouter une virgule si ce n'est pas le premier point
                 if (!pointsBuffer.empty() && pointsBuffer.size() > 1) {
                     currentFile << ",\n";
                 }

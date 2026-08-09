@@ -22,9 +22,9 @@ struct FlightPoint {
 };
 
 struct FlightMetadata {
-    int e = 0;    // Nombre de moteurs (obscurci pour anti-triche)
-    float p = 0;  // Puissance totale en watts (obscurci pour anti-triche)
-    std::string t; // takeoff_time (obscurci)
+    int seed = 0;      // Nombre de moteurs (obscurci: seed)
+    float checksum = 0; // Puissance totale en watts (obscurci: checksum)
+    std::string takeoff_time;  // Heure de décollage (reste clair)
 };
 
 class FlightDataCollector {
