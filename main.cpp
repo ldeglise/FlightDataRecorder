@@ -5,6 +5,8 @@
 #define XPLM303
 #define XPLM301
 #define XPLM300
+#define XPLM210
+#define XPLM200
 
 #include <stdio.h>
 #include <string.h>
