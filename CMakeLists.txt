@@ -20,7 +20,6 @@ add_library(FlightDataRecorder MODULE
     main.cpp
     DataRefManager.cpp
     FlightDataCollector.cpp
-    GeoJSONWriter.cpp
 )
 
 # Configuration pour Windows
