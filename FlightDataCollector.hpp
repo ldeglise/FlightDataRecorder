@@ -21,8 +21,8 @@ struct FlightPoint {
 struct FlightMetadata {
     std::string aircraft_icao;
     std::string aircraft_model;
-    int num_engines;
-    float total_power;         // acf_pmax * acf_num_engines
+    int num_engines = 0;
+    float total_power = 0;     // acf_pmax * acf_num_engines
     std::string takeoff_time;  // ISO 8601
 };
 
@@ -44,10 +44,11 @@ private:
     std::vector<FlightPoint> buffer;
     FlightMetadata metadata;
     bool flightActive = false;
-    int takeoffCounter = 0;    // Compteur pour la détection (7s)
+    int takeoffCounter = 0;    // Compteur pour la détection (3s)
     int landingCounter = 0;    // Compteur pour la détection (7s)
 
     bool isTakeoffDetected(DataRefManager& manager);
     bool isLandingDetected(DataRefManager& manager);
     std::string generateTimestamp() const;
+    std::string tryGetAircraftString(DataRefManager& manager, const std::string& primary, const std::string& fallback) const;
 };

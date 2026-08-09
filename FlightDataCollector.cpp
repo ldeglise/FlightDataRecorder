@@ -44,15 +44,40 @@ std::string FlightDataCollector::generateTimestamp() const {
     return oss.str();
 }
 
+// Helper pour lire une string dataref avec fallback
+std::string FlightDataCollector::tryGetAircraftString(DataRefManager& manager, const std::string& primary, const std::string& fallback) const {
+    try {
+        std::string value = manager.getStringDataRef(primary);
+        if (!value.empty() && value != " " && value.find_first_not_of(" ") != std::string::npos) {
+            return value;
+        }
+    } catch (...) {
+        // Dataref non trouvée, essayer le fallback
+    }
+    
+    try {
+        std::string value = manager.getStringDataRef(fallback);
+        if (!value.empty() && value != " " && value.find_first_not_of(" ") != std::string::npos) {
+            return value;
+        }
+    } catch (...) {
+        // Retourner vide si les deux échouent
+    }
+    
+    return "";
+}
+
 bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
     float agl_feet = DataRefManager::metersToFeet(agl);
     float ias_knots = DataRefManager::kmhToKnots(ias);
 
-    if (agl_feet > 50.0f && ias_knots > 55.0f) {
+    // Seuil réduit pour une détection plus rapide
+    if (agl_feet > 30.0f && ias_knots > 40.0f) {
         takeoffCounter++;
-        return takeoffCounter >= 7;
+        // Confirmation en 3 secondes au lieu de 7
+        return takeoffCounter >= 3;
     } else {
         takeoffCounter = 0;
         return false;
@@ -76,20 +101,41 @@ bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
 
 void FlightDataCollector::collectData(DataRefManager& manager) {
     // 1. Détecter le décollage
+    bool takeoffJustDetected = false;
     if (!flightActive && isTakeoffDetected(manager)) {
         flightActive = true;
         takeoffCounter = 0;
-        // Lire les métadonnées (1x)
-        metadata.aircraft_icao = manager.getStringDataRef("sim/aircraft/view/acf_ICAO");
-        metadata.aircraft_model = manager.getStringDataRef("sim/aircraft/view/acf_ui_name");
-        metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
-        float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
-        metadata.total_power = pmax * metadata.num_engines;
+        takeoffJustDetected = true;
+        // Prendre le timestamp IMMEDIATEMENT à la première détection
         metadata.takeoff_time = generateTimestamp();
     }
 
     // 2. Si en vol, collecter les données
     if (flightActive) {
+        // Si on vient de détecter le décollage OU si les métadonnées avion sont vides, les relire
+        if (takeoffJustDetected || metadata.aircraft_icao.empty() || metadata.aircraft_model.empty()) {
+            // Essayer plusieurs datarefs pour ICAO
+            metadata.aircraft_icao = tryGetAircraftString(manager, 
+                "sim/aircraft/view/acf_ICAO",
+                "sim/aircraft/engine/acf_ICAO"
+            );
+            
+            // Essayer plusieurs datarefs pour le modèle
+            metadata.aircraft_model = tryGetAircraftString(manager,
+                "sim/aircraft/view/acf_ui_name",
+                "sim/aircraft/view/acf_descrip"
+            );
+            
+            // Lire les autres métadonnées
+            if (metadata.num_engines == 0) {
+                metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
+            }
+            if (metadata.total_power == 0 && metadata.num_engines > 0) {
+                float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
+                metadata.total_power = pmax * metadata.num_engines;
+            }
+        }
+
         FlightPoint point;
         point.longitude = manager.getFloatDataRef("sim/flightmodel/position/longitude");
         point.latitude = manager.getFloatDataRef("sim/flightmodel/position/latitude");
