@@ -22,9 +22,9 @@ struct FlightPoint {
 };
 
 struct FlightMetadata {
-    int num_engines = 0;
-    float total_power = 0;     // acf_pmax * acf_num_engines
-    std::string takeoff_time;  // ISO 8601
+    int e = 0;    // Nombre de moteurs (obscurci pour anti-triche)
+    float p = 0;  // Puissance totale en watts (obscurci pour anti-triche)
+    std::string t; // takeoff_time (obscurci)
 };
 
 class FlightDataCollector {
@@ -48,11 +48,11 @@ private:
     int landingCounter = 0;    // Compteur pour la détection (30s)
     std::string currentFilePath;
     std::ofstream currentFile;
-    std::chrono::time_point<std::chrono::system_clock> groundContactTime; // Heure du contact sol
+    std::chrono::time_point<std::chrono::system_clock> groundContactTime;
 
     bool isTakeoffDetected(DataRefManager& manager);
     bool isLandingDetected(DataRefManager& manager);
-    bool isFlightEnded() const; // Vérifie si le vol est vraiment terminé (2 min au sol)
+    bool isFlightEnded() const;
     std::string generateTimestamp() const;
     std::string convertZuluTime(float zulu_time_sec) const;
 };

@@ -88,7 +88,6 @@ bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     
     // Détection universelle : AGL > 10 mètres pendant 10 secondes
-    // 10 mètres = 32.8 pieds, mais on compare directement en mètres
     if (agl > 10.0f) {
         takeoffCounter++;
         return takeoffCounter >= 10;
@@ -121,17 +120,17 @@ bool FlightDataCollector::isFlightEnded() const {
 }
 
 void FlightDataCollector::collectData(DataRefManager& manager) {
-    // Lire les métadonnées moteur (num_engines et total_power)
+    // Lire les métadonnées moteur (e = num_engines, p = total_power en watts)
     try {
-        metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
+        metadata.e = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
     } catch (...) {
         // Garder la valeur précédente si erreur
     }
     
     try {
-        if (metadata.num_engines > 0) {
+        if (metadata.e > 0) {
             float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
-            metadata.total_power = pmax * metadata.num_engines;
+            metadata.p = pmax * metadata.e; // Puissance totale en watts
         }
     } catch (...) {
         // Garder la valeur précédente si erreur
@@ -161,13 +160,13 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             return;
         }
         
-        // Écrire l'en-tête GeoJSON (SANS aircraft_icao et aircraft_model)
+        // Écrire l'en-tête GeoJSON avec noms obscurs
         currentFile << "{\n";
         currentFile << "  \"type\": \"FeatureCollection\",\n";
         currentFile << "  \"metadata\": {\n";
-        currentFile << "    \"num_engines\": " << metadata.num_engines << ",\n";
-        currentFile << "    \"total_power\": " << metadata.total_power << ",\n";
-        currentFile << "    \"takeoff_time\": \"" << metadata.takeoff_time << "\"\n";
+        currentFile << "    \"e\": " << metadata.e << ",\n";      // Nombre de moteurs
+        currentFile << "    \"p\": " << metadata.p << ",\n";      // Puissance totale en watts
+        currentFile << "    \"t\": \"" << metadata.takeoff_time << "\"\n"; // takeoff_time
         currentFile << "  },\n";
         currentFile << "  \"features\": [\n";
         
