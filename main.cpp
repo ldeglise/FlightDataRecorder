@@ -16,12 +16,10 @@
 #include "XPLMUtilities.h"
 #include "DataRefManager.hpp"
 #include "FlightDataCollector.hpp"
-#include "GeoJSONWriter.hpp"
 
 // Instances globales
 static DataRefManager dataRefManager;
 static FlightDataCollector flightDataCollector;
-static GeoJSONWriter geoJSONWriter;
 
 static float FlightDataRecorderCallback(
     float inElapsedSinceLastCall,

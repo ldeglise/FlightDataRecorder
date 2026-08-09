@@ -1,5 +1,5 @@
 #include "FlightDataCollector.hpp"
-#include "GeoJSONWriter.hpp"
+
 #include <filesystem>
 #include <random>
 #include <algorithm>

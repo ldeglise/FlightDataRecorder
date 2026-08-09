@@ -33,7 +33,6 @@ public:
     ~FlightDataCollector();
 
     void collectData(DataRefManager& manager);
-    void writeToDisk(const std::string& outputDir, class GeoJSONWriter& writer);
     bool isFlightActive() const { return flightActive; }
     const FlightMetadata& getMetadata() const { return metadata; }
     std::string generateRandomPrefix() const;
