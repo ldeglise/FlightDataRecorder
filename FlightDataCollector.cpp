@@ -10,16 +10,31 @@
 
 namespace fs = std::filesystem;
 
-FlightDataCollector::FlightDataCollector() 
-    : firstPointWritten(false) {}
+FlightDataCollector::FlightDataCollector() = default;
 
 FlightDataCollector::~FlightDataCollector() {
     // Fermer le fichier si encore ouvert
     if (currentFile.is_open()) {
-        // Fermer proprement le GeoJSON
-        currentFile << "        ]\n";
-        currentFile << "      }\n";
-        currentFile << "    }\n";
+        // Écrire la LineString finale à partir du buffer
+        if (!pointsBuffer.empty() && pointsBuffer.size() >= 2) {
+            currentFile << ",\n";
+            currentFile << "    {\n";
+            currentFile << "      \"type\": \"Feature\",\n";
+            currentFile << "      \"geometry\": {\n";
+            currentFile << "        \"type\": \"LineString\",\n";
+            currentFile << "        \"coordinates\": [\n";
+            for (size_t i = 0; i < pointsBuffer.size(); ++i) {
+                const auto& p = pointsBuffer[i];
+                currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
+                if (i < pointsBuffer.size() - 1) {
+                    currentFile << ",";
+                }
+                currentFile << "\n";
+            }
+            currentFile << "        ]\n";
+            currentFile << "      }\n";
+            currentFile << "    }\n";
+        }
         currentFile << "  ]\n";
         currentFile << "}\n";
         currentFile.flush();
@@ -51,6 +66,21 @@ std::string FlightDataCollector::generateTimestamp() const {
         << std::setw(2) << tm_struct.tm_hour << ":"
         << std::setw(2) << tm_struct.tm_min << ":"
         << std::setw(2) << tm_struct.tm_sec << "Z";
+    return oss.str();
+}
+
+// Convertit zulu_time_sec (secondes depuis 00:00) en HH:mm:ss
+std::string FlightDataCollector::convertZuluTime(float zulu_time_sec) const {
+    int totalSeconds = static_cast<int>(zulu_time_sec);
+    int hours = totalSeconds / 3600;
+    int minutes = (totalSeconds % 3600) / 60;
+    int seconds = totalSeconds % 60;
+    
+    std::ostringstream oss;
+    oss << std::setfill('0')
+        << std::setw(2) << hours << ":"
+        << std::setw(2) << minutes << ":"
+        << std::setw(2) << seconds;
     return oss.str();
 }
 
@@ -106,13 +136,13 @@ bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
     }
 }
 
-bool FlightDataCollector::isFlightEnded(DataRefManager& manager) {
-    // Vérifie si le vol est vraiment terminé (5 minutes au sol sans redécollage)
+bool FlightDataCollector::isFlightEnded() const {
+    // Vérifie si le vol est vraiment terminé (2 minutes au sol sans redécollage)
     auto now = std::chrono::system_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(now - groundContactTime);
     
-    // Si on est au sol depuis plus de 5 minutes, considérer le vol comme terminé
-    return elapsed.count() >= 5;
+    // Si on est au sol depuis plus de 2 minutes, considérer le vol comme terminé
+    return elapsed.count() >= 2;
 }
 
 void FlightDataCollector::collectData(DataRefManager& manager) {
@@ -149,7 +179,6 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         flightActive = true;
         flightPaused = false;
         takeoffCounter = 0;
-        firstPointWritten = false;
         
         // Prendre le timestamp IMMEDIATEMENT à la première détection
         metadata.takeoff_time = generateTimestamp();
@@ -181,14 +210,10 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         currentFile << "  },\n";
         currentFile << "  \"features\": [\n";
         
-        // Début du LineString
-        currentFile << "    {\n";
-        currentFile << "      \"type\": \"Feature\",\n";
-        currentFile << "      \"geometry\": {\n";
-        currentFile << "        \"type\": \"LineString\",\n";
-        currentFile << "        \"coordinates\": [\n";
-        
         currentFile.flush();
+        
+        // Vider le buffer de points
+        pointsBuffer.clear();
     }
 
     // 2. Gestion de l'état en vol
@@ -201,23 +226,38 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 groundContactTime = std::chrono::system_clock::now();
             }
             
-            // Vérifier si le vol est vraiment terminé (5 min au sol)
-            if (isFlightEnded(manager)) {
+            // Vérifier si le vol est vraiment terminé (2 min au sol)
+            if (isFlightEnded()) {
                 // Fermer le fichier, vol terminé
                 flightActive = false;
                 landingCounter = 0;
-                firstPointWritten = false;
                 
-                if (currentFile.is_open()) {
-                    currentFile << "\n";
+                // Écrire la LineString finale à partir du buffer
+                if (currentFile.is_open() && pointsBuffer.size() >= 2) {
+                    currentFile << ",\n";
+                    currentFile << "    {\n";
+                    currentFile << "      \"type\": \"Feature\",\n";
+                    currentFile << "      \"geometry\": {\n";
+                    currentFile << "        \"type\": \"LineString\",\n";
+                    currentFile << "        \"coordinates\": [\n";
+                    for (size_t i = 0; i < pointsBuffer.size(); ++i) {
+                        const auto& p = pointsBuffer[i];
+                        currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
+                        if (i < pointsBuffer.size() - 1) {
+                            currentFile << ",";
+                        }
+                        currentFile << "\n";
+                    }
                     currentFile << "        ]\n";
                     currentFile << "      }\n";
                     currentFile << "    }\n";
-                    currentFile << "  ]\n";
-                    currentFile << "}\n";
-                    currentFile.flush();
-                    currentFile.close();
                 }
+                
+                currentFile << "  ]\n";
+                currentFile << "}\n";
+                currentFile.flush();
+                currentFile.close();
+                
                 currentFilePath.clear();
             }
             // Sinon, on reste en pause (atterrissage temporaire)
@@ -228,7 +268,6 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         if (flightPaused && isTakeoffDetected(manager)) {
             flightPaused = false;
             takeoffCounter = 0;
-            // On ne réinitialise pas firstPointWritten pour continuer le LineString
             return; // Le point sera écrit au prochain callback
         }
 
@@ -246,21 +285,20 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
             
             point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
+            point.zulu_time = convertZuluTime(point.zulu_time_sec); // Conversion en HH:mm:ss
             point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
             point.timestamp = generateTimestamp();
 
-            // Écrire le point dans le fichier
+            // Stocker le point dans le buffer pour la LineString finale
+            pointsBuffer.push_back(point);
+
+            // Écrire UNIQUEMENT le Point Feature (pas de LineString pendant le vol)
             if (currentFile.is_open()) {
-                // Écrire la coordonnée pour le LineString
-                if (!firstPointWritten) {
-                    firstPointWritten = true;
-                } else {
+                // Ajouter une virgule si ce n'est pas le premier point
+                if (!pointsBuffer.empty() && pointsBuffer.size() > 1) {
                     currentFile << ",\n";
                 }
-                currentFile << "          [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]";
                 
-                // Écrire le Point Feature
-                currentFile << ",\n";
                 currentFile << "    {\n";
                 currentFile << "      \"type\": \"Feature\",\n";
                 currentFile << "      \"geometry\": {\n";
@@ -274,7 +312,8 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
                 currentFile << "        \"ias\": " << point.ias << ",\n";
                 currentFile << "        \"gs\": " << point.gs << ",\n";
-                currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << "\n";
+                currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << ",\n";
+                currentFile << "        \"zulu_time\": \"" << point.zulu_time << "\"\n";
                 currentFile << "      }\n";
                 currentFile << "    }";
                 

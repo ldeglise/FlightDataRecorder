@@ -18,6 +18,7 @@ struct FlightPoint {
     float zulu_time_sec;       // Secondes depuis minuit Zulu
     int local_date_days;       // Jours depuis le 1er janvier (local)
     std::string timestamp;     // ISO 8601 (ex: "2026-08-08T14:30:20Z")
+    std::string zulu_time;     // HH:mm:ss (converti depuis zulu_time_sec)
 };
 
 struct FlightMetadata {
@@ -42,18 +43,19 @@ public:
 
 private:
     FlightMetadata metadata;
+    std::vector<FlightPoint> pointsBuffer; // Buffer pour la LineString finale
     bool flightActive = false;
     bool flightPaused = false;  // En pause au sol (atterrissage temporaire)
     int takeoffCounter = 0;    // Compteur pour la détection (3s)
     int landingCounter = 0;    // Compteur pour la détection (5s)
     std::string currentFilePath;
     std::ofstream currentFile;
-    bool firstPointWritten = false; // Pour gérer les virgules dans le LineString
     std::chrono::time_point<std::chrono::system_clock> groundContactTime; // Heure du contact sol
 
     bool isTakeoffDetected(DataRefManager& manager);
     bool isLandingDetected(DataRefManager& manager);
-    bool isFlightEnded(DataRefManager& manager); // Vérifie si le vol est vraiment terminé
+    bool isFlightEnded() const; // Vérifie si le vol est vraiment terminé (2 min au sol)
     std::string generateTimestamp() const;
+    std::string convertZuluTime(float zulu_time_sec) const; // Convertit en HH:mm:ss
     std::string tryGetAircraftString(DataRefManager& manager, const std::string& primary, const std::string& fallback) const;
 };
