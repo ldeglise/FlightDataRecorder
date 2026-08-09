@@ -80,11 +80,13 @@ std::string FlightDataCollector::tryGetAircraftString(DataRefManager& manager, c
 bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     float agl_feet = DataRefManager::metersToFeet(agl);
+    int onground = manager.getIntDataRef("sim/flightmodel/position/onground");
     
-    // Détection universelle : AGL > 5 pieds pendant 3 secondes
+    // Détection universelle : AGL > 10 pieds ET onground == 0 pendant 3 secondes
+    // - AGL > 10 pieds (~3m) évite les déclenchements intempestifs
+    // - onground == 0 confirme qu'on est bien en vol
     // Fonctionne pour : avions, ULM, hélicos (en montée), jets
-    // Un hélico en stationnaire à 2m ne déclenchera pas (AGL > 5 pieds = ~1.5m)
-    if (agl_feet > 5.0f) {
+    if (agl_feet > 10.0f && onground == 0) {
         takeoffCounter++;
         return takeoffCounter >= 3;
     } else {
@@ -96,13 +98,16 @@ bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
 bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
-    float agl_feet = DataRefManager::metersToFeet(agl);
+    int onground = manager.getIntDataRef("sim/flightmodel/position/onground");
     
-    // Pour l'atterrissage, on garde la vitesse comme critère
-    // AGL < 10 pieds ET vitesse < 30 km/h
-    if (agl_feet < 10.0f && ias < 30.0f) {
+    // Détection d'atterrissage : onground == 1 ET vitesse très faible
+    // - onground == 1 : l'appareil est au contact du sol
+    // - ias < 20 km/h : évite les fausses détections pendant le roulage
+    // - Confirmation sur 5 secondes pour éviter les rebonds
+    // Fonctionne pour : avions, ULM, hélicos (qui se posent vraiment)
+    if (onground == 1 && ias < 20.0f) {
         landingCounter++;
-        return landingCounter >= 7;
+        return landingCounter >= 5;
     } else {
         landingCounter = 0;
         return false;
