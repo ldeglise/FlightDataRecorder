@@ -42,14 +42,14 @@ void GeoJSONWriter::writeGeoJSON(const std::string& filePath,
         file << "        \"magnetic_heading\": " << p.magnetic_heading << ",\n";
         file << "        \"ias\": " << p.ias << ",\n";
         file << "        \"gs\": " << p.gs << ",\n";
-        file << "        \"zulu_time_sec\": " << p.zulu_time_sec << ",\n";
-        file << "        \"local_date_days\": " << p.local_date_days << "\n";
+        file << "        \"zulu_time_sec\": " << p.zulu_time_sec << "\n";
         file << "      }\n";
         file << "    }";
-        if (i < points.size() - 1) {
-            file << ",";
+        if (i < points.size() - 1 || points.size() >= 2) {
+            file << ",\n";
+        } else {
+            file << "\n";
         }
-        file << "\n";
     }
 
     // 2. Ajouter la trace (LineString) si au moins 2 points

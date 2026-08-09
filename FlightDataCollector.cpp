@@ -5,48 +5,42 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <ctime>
+#include <chrono>
 
 namespace fs = std::filesystem;
 
 FlightDataCollector::FlightDataCollector() = default;
 FlightDataCollector::~FlightDataCollector() = default;
 
-std::string FlightDataCollector::generateTimestamp(float zulu_time_sec, int local_date_days) const {
-    // Calculer l'heure (HH:mm:SS)
-    int hours = static_cast<int>(zulu_time_sec) / 3600;
-    int minutes = (static_cast<int>(zulu_time_sec) % 3600) / 60;
-    int seconds = static_cast<int>(zulu_time_sec) % 60;
-
-    // Calculer le mois et le jour à partir de local_date_days
-    int days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    int month = 1;
-    int day = local_date_days;
-    int year = 2026; // Année par défaut
-
-    // Ajustement pour les années bissextiles
-    bool is_leap_year = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-    if (is_leap_year) {
-        days_in_month[1] = 29; // Février a 29 jours
-    }
-
-    for (int m = 0; m < 12; ++m) {
-        if (day > days_in_month[m]) {
-            day -= days_in_month[m];
-            month++;
+std::string FlightDataCollector::generateTimestamp() const {
+    // Utiliser le timestamp système au lieu du simulateur
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    
+    std::tm tm_struct;
+    #ifdef _WIN32
+        gmtime_s(&tm_struct, &in_time_t);
+    #else
+        // Pour Linux et macOS, utiliser gmtime (thread-safe dans ce contexte)
+        std::tm* tm_ptr = gmtime(&in_time_t);
+        if (tm_ptr) {
+            tm_struct = *tm_ptr;
         } else {
-            break;
+            // Valeurs par défaut en cas d'erreur
+            tm_struct = std::tm();
         }
-    }
-
+    #endif
+    
     // Formater en ISO 8601 : YYYY-MM-DDTHH:mm:SSZ
     std::ostringstream oss;
     oss << std::setfill('0')
-        << std::setw(4) << year << "-"
-        << std::setw(2) << month << "-"
-        << std::setw(2) << day << "T"
-        << std::setw(2) << hours << ":"
-        << std::setw(2) << minutes << ":"
-        << std::setw(2) << seconds << "Z";
+        << std::setw(4) << (tm_struct.tm_year + 1900) << "-"
+        << std::setw(2) << (tm_struct.tm_mon + 1) << "-"
+        << std::setw(2) << tm_struct.tm_mday << "T"
+        << std::setw(2) << tm_struct.tm_hour << ":"
+        << std::setw(2) << tm_struct.tm_min << ":"
+        << std::setw(2) << tm_struct.tm_sec << "Z";
     return oss.str();
 }
 
@@ -91,10 +85,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
         float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
         metadata.total_power = pmax * metadata.num_engines;
-        metadata.takeoff_time = generateTimestamp(
-            manager.getFloatDataRef("sim/time/zulu_time_sec"),
-            manager.getIntDataRef("sim/time/local_date_days")
-        );
+        metadata.takeoff_time = generateTimestamp();
     }
 
     // 2. Si en vol, collecter les données
@@ -109,10 +100,9 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
         point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
         point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
-        point.timestamp = generateTimestamp(point.zulu_time_sec, point.local_date_days);
+        point.timestamp = generateTimestamp();
 
         buffer.push_back(point);
-        writeCounter++;
 
         // 3. Détecter l'atterrissage
         if (isLandingDetected(manager)) {
@@ -123,6 +113,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
 }
 
 std::string FlightDataCollector::generateRandomPrefix() const {
+    // Plus utilisé mais gardé pour compatibilité
     static const char alphanum[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     std::random_device rd;
     std::mt19937 gen(rd());

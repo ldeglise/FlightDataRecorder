@@ -1,6 +1,7 @@
 #include "DataRefManager.hpp"
 #include <stdexcept>
 #include <cstring>
+#include <string.h>
 
 DataRefManager::DataRefManager() = default;
 DataRefManager::~DataRefManager() = default;
@@ -31,8 +32,11 @@ int DataRefManager::getIntDataRef(const std::string& datarefName) {
 std::string DataRefManager::getStringDataRef(const std::string& datarefName) {
     XPLMDataRef ref = getDataRef(datarefName);
     char buffer[256];
-    // XPLMGetDatavf attend un float*, mais les strings sont stockés comme char*
-    // On utilise reinterpret_cast pour contourner le typage strict
-    XPLMGetDatavf(ref, reinterpret_cast<float*>(buffer), 0, 256);
+    // XPLMGetDatavf attend un float* mais les strings sont stockés comme char*
+    // On utilise un buffer float temporaire puis on copie les bytes
+    float floatBuffer[64]; // 64 floats = 256 bytes
+    XPLMGetDatavf(ref, floatBuffer, 0, 64);
+    // Copier les bytes du float buffer vers le char buffer
+    memcpy(buffer, floatBuffer, 256);
     return std::string(buffer);
 }

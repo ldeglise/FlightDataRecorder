@@ -46,9 +46,8 @@ private:
     bool flightActive = false;
     int takeoffCounter = 0;    // Compteur pour la détection (7s)
     int landingCounter = 0;    // Compteur pour la détection (7s)
-    int writeCounter = 0;      // Compteur pour l'écriture (20s)
 
     bool isTakeoffDetected(DataRefManager& manager);
     bool isLandingDetected(DataRefManager& manager);
-    std::string generateTimestamp(float zulu_time_sec, int local_date_days) const;
+    std::string generateTimestamp() const;
 };

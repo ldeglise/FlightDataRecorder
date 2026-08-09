@@ -36,29 +36,26 @@ static float FlightDataRecorderCallback(
         // 1. Collecter les données
         flightDataCollector.collectData(dataRefManager);
 
-        // 2. Écrire sur disque toutes les 20s (si en vol)
+        // 2. Écrire sur disque toutes les 1s (si en vol)
         if (flightDataCollector.isFlightActive()) {
-            if (callbackCounter % 20 == 0) {
-                // Générer le nom de fichier (1x au décollage)
-                if (currentFilePath.empty()) {
-                    std::string dir = flightDataCollector.getOutputDirectory();
-                    std::string prefix = flightDataCollector.generateRandomPrefix();
-                    std::string timestamp = flightDataCollector.getMetadata().takeoff_time;
-                    // Remplacer les ":" par "-" pour le nom de fichier
-                    std::string safeTimestamp = timestamp;
-                    std::replace(safeTimestamp.begin(), safeTimestamp.end(), ':', '-');
-                    currentFilePath = dir + "/" + prefix + "_" + safeTimestamp + ".geojson";
-                }
-
-                // Écrire le GeoJSON avec les données tamponnées
-                geoJSONWriter.writeGeoJSON(
-                    currentFilePath,
-                    flightDataCollector.getMetadata(),
-                    flightDataCollector.getBuffer()
-                );
-                // Vider le tampon
-                flightDataCollector.clearBuffer();
+            // Générer le nom de fichier (1x au décollage)
+            if (currentFilePath.empty()) {
+                std::string dir = flightDataCollector.getOutputDirectory();
+                std::string timestamp = flightDataCollector.getMetadata().takeoff_time;
+                // Remplacer les ":" par "-" pour le nom de fichier
+                std::string safeTimestamp = timestamp;
+                std::replace(safeTimestamp.begin(), safeTimestamp.end(), ':', '-');
+                currentFilePath = dir + "/" + safeTimestamp + ".geojson";
             }
+
+            // Écrire le GeoJSON avec les données tamponnées
+            geoJSONWriter.writeGeoJSON(
+                currentFilePath,
+                flightDataCollector.getMetadata(),
+                flightDataCollector.getBuffer()
+            );
+            // Vider le tampon
+            flightDataCollector.clearBuffer();
             callbackCounter++;
         } else {
             // Si le vol est terminé (atterrissage), réinitialiser
