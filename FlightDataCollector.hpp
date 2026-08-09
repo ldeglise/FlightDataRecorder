@@ -44,7 +44,6 @@ private:
     std::vector<FlightPoint> pointsBuffer; // Buffer temporaire pour la LineString finale
     FlightMetadata metadata;
     bool flightActive = false;
-    bool metadataLoaded = false; // Pour savoir si on a déjà essayé de charger les métadonnées
     int takeoffCounter = 0;    // Compteur pour la détection (3s)
     int landingCounter = 0;    // Compteur pour la détection (7s)
     std::string currentFilePath;
@@ -54,5 +53,4 @@ private:
     bool isLandingDetected(DataRefManager& manager);
     std::string generateTimestamp() const;
     std::string tryGetAircraftString(DataRefManager& manager, const std::string& primary, const std::string& fallback) const;
-    void loadMetadata(DataRefManager& manager);
 };

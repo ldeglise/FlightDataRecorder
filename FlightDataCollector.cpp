@@ -15,6 +15,32 @@ FlightDataCollector::FlightDataCollector() = default;
 FlightDataCollector::~FlightDataCollector() {
     // Fermer le fichier si encore ouvert
     if (currentFile.is_open()) {
+        // Écrire la LineString finale si nécessaire
+        if (!pointsBuffer.empty() && pointsBuffer.size() >= 2) {
+            currentFile << ",\n";
+            currentFile << "    {\n";
+            currentFile << "      \"type\": \"Feature\",\n";
+            currentFile << "      \"geometry\": {\n";
+            currentFile << "        \"type\": \"LineString\",\n";
+            currentFile << "        \"coordinates\": [\n";
+            for (size_t i = 0; i < pointsBuffer.size(); ++i) {
+                const auto& p = pointsBuffer[i];
+                currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
+                if (i < pointsBuffer.size() - 1) {
+                    currentFile << ",";
+                }
+                currentFile << "\n";
+            }
+            currentFile << "        ]\n";
+            currentFile << "      }\n";
+            currentFile << "    }\n";
+            currentFile << "  ]\n";
+            currentFile << "}\n";
+        } else if (currentFile.is_open()) {
+            // Pas assez de points pour une LineString
+            currentFile << "\n  ]\n";
+            currentFile << "}\n";
+        }
         currentFile.close();
     }
 }
@@ -69,38 +95,6 @@ std::string FlightDataCollector::tryGetAircraftString(DataRefManager& manager, c
     return "";
 }
 
-// Charger les métadonnées de l'avion (appelé dès que possible)
-void FlightDataCollector::loadMetadata(DataRefManager& manager) {
-    if (metadataLoaded) return;
-    
-    metadata.aircraft_icao = tryGetAircraftString(manager,
-        "sim/aircraft/view/acf_ICAO",
-        "sim/aircraft/engine/acf_ICAO"
-    );
-    
-    metadata.aircraft_model = tryGetAircraftString(manager,
-        "sim/aircraft/view/acf_ui_name",
-        "sim/aircraft/view/acf_descrip"
-    );
-    
-    try {
-        metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
-    } catch (...) {
-        metadata.num_engines = 0;
-    }
-    
-    try {
-        if (metadata.num_engines > 0) {
-            float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
-            metadata.total_power = pmax * metadata.num_engines;
-        }
-    } catch (...) {
-        metadata.total_power = 0;
-    }
-    
-    metadataLoaded = true;
-}
-
 bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
@@ -134,9 +128,30 @@ bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
 }
 
 void FlightDataCollector::collectData(DataRefManager& manager) {
-    // Charger les métadonnées dès le premier appel (si pas encore chargé)
-    if (!metadataLoaded) {
-        loadMetadata(manager);
+    // Monitorer les métadonnées avion à chaque callback
+    metadata.aircraft_icao = tryGetAircraftString(manager,
+        "sim/aircraft/view/acf_ICAO",
+        "sim/aircraft/engine/acf_ICAO"
+    );
+    
+    metadata.aircraft_model = tryGetAircraftString(manager,
+        "sim/aircraft/view/acf_ui_name",
+        "sim/aircraft/view/acf_descrip"
+    );
+    
+    try {
+        metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
+    } catch (...) {
+        // Garder la valeur précédente si erreur
+    }
+    
+    try {
+        if (metadata.num_engines > 0) {
+            float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
+            metadata.total_power = pmax * metadata.num_engines;
+        }
+    } catch (...) {
+        // Garder la valeur précédente si erreur
     }
 
     // 1. Détecter le décollage
@@ -221,7 +236,8 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             currentFile << "      }\n";
             currentFile << "    }";
             
-            // Ne pas fermer ici, on continue à écrire
+            // Flush pour s'assurer que les données sont écrites
+            currentFile.flush();
         }
 
         // 3. Détecter l'atterrissage
