@@ -10,37 +10,19 @@
 
 namespace fs = std::filesystem;
 
-FlightDataCollector::FlightDataCollector() = default;
+FlightDataCollector::FlightDataCollector() 
+    : firstPointWritten(false) {}
 
 FlightDataCollector::~FlightDataCollector() {
     // Fermer le fichier si encore ouvert
     if (currentFile.is_open()) {
-        // Écrire la LineString finale si nécessaire
-        if (!pointsBuffer.empty() && pointsBuffer.size() >= 2) {
-            currentFile << ",\n";
-            currentFile << "    {\n";
-            currentFile << "      \"type\": \"Feature\",\n";
-            currentFile << "      \"geometry\": {\n";
-            currentFile << "        \"type\": \"LineString\",\n";
-            currentFile << "        \"coordinates\": [\n";
-            for (size_t i = 0; i < pointsBuffer.size(); ++i) {
-                const auto& p = pointsBuffer[i];
-                currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
-                if (i < pointsBuffer.size() - 1) {
-                    currentFile << ",";
-                }
-                currentFile << "\n";
-            }
-            currentFile << "        ]\n";
-            currentFile << "      }\n";
-            currentFile << "    }\n";
-            currentFile << "  ]\n";
-            currentFile << "}\n";
-        } else if (currentFile.is_open()) {
-            // Pas assez de points pour une LineString
-            currentFile << "\n  ]\n";
-            currentFile << "}\n";
-        }
+        // Fermer proprement le GeoJSON
+        currentFile << "        ]\n";
+        currentFile << "      }\n";
+        currentFile << "    }\n";
+        currentFile << "  ]\n";
+        currentFile << "}\n";
+        currentFile.flush();
         currentFile.close();
     }
 }
@@ -97,16 +79,14 @@ std::string FlightDataCollector::tryGetAircraftString(DataRefManager& manager, c
 
 bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
-    float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
     float agl_feet = DataRefManager::metersToFeet(agl);
     
-    // X-Plane: indicated_airspeed est en NOEUDs (knots)
-    // Pour un Cessna 172, vitesse de rotation ~55-60 knots, décollage ~65-70 knots
-    // On détecte dès 45 knots avec AGL > 10 pieds
-    if (agl_feet > 10.0f && ias > 45.0f) {
+    // Détection universelle : AGL > 5 pieds pendant 3 secondes
+    // Fonctionne pour : avions, ULM, hélicos (en montée), jets
+    // Un hélico en stationnaire à 2m ne déclenchera pas (AGL > 5 pieds = ~1.5m)
+    if (agl_feet > 5.0f) {
         takeoffCounter++;
-        // Confirmation en 2 secondes pour une détection plus rapide
-        return takeoffCounter >= 2;
+        return takeoffCounter >= 3;
     } else {
         takeoffCounter = 0;
         return false;
@@ -118,7 +98,8 @@ bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
     float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
     float agl_feet = DataRefManager::metersToFeet(agl);
     
-    // X-Plane: indicated_airspeed est en NOEUDs
+    // Pour l'atterrissage, on garde la vitesse comme critère
+    // AGL < 10 pieds ET vitesse < 30 km/h
     if (agl_feet < 10.0f && ias < 30.0f) {
         landingCounter++;
         return landingCounter >= 7;
@@ -156,11 +137,10 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
     }
 
     // 1. Détecter le décollage
-    bool takeoffJustDetected = false;
     if (!flightActive && isTakeoffDetected(manager)) {
         flightActive = true;
         takeoffCounter = 0;
-        takeoffJustDetected = true;
+        firstPointWritten = false;
         
         // Prendre le timestamp IMMEDIATEMENT à la première détection
         metadata.takeoff_time = generateTimestamp();
@@ -192,11 +172,15 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         currentFile << "  },\n";
         currentFile << "  \"features\": [\n";
         
+        // Début du LineString (sera complété au fur et à mesure)
+        currentFile << "    {\n";
+        currentFile << "      \"type\": \"Feature\",\n";
+        currentFile << "      \"geometry\": {\n";
+        currentFile << "        \"type\": \"LineString\",\n";
+        currentFile << "        \"coordinates\": [\n";
+        
         // Forcer le flush
         currentFile.flush();
-        
-        // Vider le buffer de points
-        pointsBuffer.clear();
     }
 
     // 2. Si en vol, collecter et écrire les données
@@ -208,8 +192,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
         point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
         
-        // X-Plane: indicated_airspeed et groundspeed sont en NOEUDS (knots)
-        // On les stocke telles quelles dans le GeoJSON
+        // X-Plane fournit les vitesses en km/h - stocker sans conversion
         point.ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
         point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
         
@@ -217,16 +200,18 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
         point.timestamp = generateTimestamp();
 
-        // Stocker le point pour la LineString finale
-        pointsBuffer.push_back(point);
-
-        // Écrire le point dans le fichier (directement, sans bufferiser)
+        // Écrire le point dans le fichier
         if (currentFile.is_open()) {
-            // Ajouter une virgule si ce n'est pas le premier point
-            if (pointsBuffer.size() > 1) {
+            // Écrire la coordonnée pour le LineString
+            if (!firstPointWritten) {
+                firstPointWritten = true;
+            } else {
                 currentFile << ",\n";
             }
+            currentFile << "          [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]";
             
+            // Écrire le Point Feature
+            currentFile << ",\n";
             currentFile << "    {\n";
             currentFile << "      \"type\": \"Feature\",\n";
             currentFile << "      \"geometry\": {\n";
@@ -252,23 +237,11 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         if (isLandingDetected(manager)) {
             flightActive = false;
             landingCounter = 0;
+            firstPointWritten = false;
             
-            // Écrire la LineString finale et fermer le fichier
-            if (currentFile.is_open() && pointsBuffer.size() >= 2) {
-                currentFile << ",\n";
-                currentFile << "    {\n";
-                currentFile << "      \"type\": \"Feature\",\n";
-                currentFile << "      \"geometry\": {\n";
-                currentFile << "        \"type\": \"LineString\",\n";
-                currentFile << "        \"coordinates\": [\n";
-                for (size_t i = 0; i < pointsBuffer.size(); ++i) {
-                    const auto& p = pointsBuffer[i];
-                    currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
-                    if (i < pointsBuffer.size() - 1) {
-                        currentFile << ",";
-                    }
-                    currentFile << "\n";
-                }
+            // Fermer le LineString et le GeoJSON
+            if (currentFile.is_open()) {
+                currentFile << "\n";
                 currentFile << "        ]\n";
                 currentFile << "      }\n";
                 currentFile << "    }\n";
@@ -276,16 +249,8 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 currentFile << "}\n";
                 currentFile.flush();
                 currentFile.close();
-            } else if (currentFile.is_open()) {
-                // Pas assez de points pour une LineString, juste fermer
-                currentFile << "\n  ]\n";
-                currentFile << "}\n";
-                currentFile.flush();
-                currentFile.close();
             }
             
-            // Vider le buffer
-            pointsBuffer.clear();
             currentFilePath.clear();
         }
     }

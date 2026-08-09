@@ -12,8 +12,8 @@ struct FlightPoint {
     double elevation_msl;      // Altitude barométrique (mètres)
     float true_heading;        // Cap vrai (degrés)
     float magnetic_heading;    // Cap magnétique (degrés)
-    float ias;                 // Vitesse indiquée (en nœuds)
-    float gs;                  // Vitesse sol (en nœuds)
+    float ias;                 // Vitesse indiquée (km/h, valeur brute X-Plane)
+    float gs;                  // Vitesse sol (km/h, valeur brute X-Plane)
     float zulu_time_sec;       // Secondes depuis minuit Zulu
     int local_date_days;       // Jours depuis le 1er janvier (local)
     std::string timestamp;     // ISO 8601 (ex: "2026-08-08T14:30:20Z")
@@ -40,13 +40,13 @@ public:
     std::string getCurrentFilePath() const { return currentFilePath; }
 
 private:
-    std::vector<FlightPoint> pointsBuffer; // Buffer temporaire pour la LineString finale
     FlightMetadata metadata;
     bool flightActive = false;
-    int takeoffCounter = 0;    // Compteur pour la détection (2s)
+    int takeoffCounter = 0;    // Compteur pour la détection (3s)
     int landingCounter = 0;    // Compteur pour la détection (7s)
     std::string currentFilePath;
     std::ofstream currentFile;
+    bool firstPointWritten = false; // Pour gérer les virgules dans le LineString
 
     bool isTakeoffDetected(DataRefManager& manager);
     bool isLandingDetected(DataRefManager& manager);
