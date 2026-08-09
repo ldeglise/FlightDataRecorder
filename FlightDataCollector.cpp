@@ -11,10 +11,15 @@
 namespace fs = std::filesystem;
 
 FlightDataCollector::FlightDataCollector() = default;
-FlightDataCollector::~FlightDataCollector() = default;
+
+FlightDataCollector::~FlightDataCollector() {
+    // Fermer le fichier si encore ouvert
+    if (currentFile.is_open()) {
+        currentFile.close();
+    }
+}
 
 std::string FlightDataCollector::generateTimestamp() const {
-    // Utiliser le timestamp système au lieu du simulateur
     auto now = std::chrono::system_clock::now();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
     
@@ -22,17 +27,14 @@ std::string FlightDataCollector::generateTimestamp() const {
     #ifdef _WIN32
         gmtime_s(&tm_struct, &in_time_t);
     #else
-        // Pour Linux et macOS, utiliser gmtime (thread-safe dans ce contexte)
         std::tm* tm_ptr = gmtime(&in_time_t);
         if (tm_ptr) {
             tm_struct = *tm_ptr;
         } else {
-            // Valeurs par défaut en cas d'erreur
             tm_struct = std::tm();
         }
     #endif
     
-    // Formater en ISO 8601 : YYYY-MM-DDTHH:mm:SSZ
     std::ostringstream oss;
     oss << std::setfill('0')
         << std::setw(4) << (tm_struct.tm_year + 1900) << "-"
@@ -67,6 +69,38 @@ std::string FlightDataCollector::tryGetAircraftString(DataRefManager& manager, c
     return "";
 }
 
+// Charger les métadonnées de l'avion (appelé dès que possible)
+void FlightDataCollector::loadMetadata(DataRefManager& manager) {
+    if (metadataLoaded) return;
+    
+    metadata.aircraft_icao = tryGetAircraftString(manager,
+        "sim/aircraft/view/acf_ICAO",
+        "sim/aircraft/engine/acf_ICAO"
+    );
+    
+    metadata.aircraft_model = tryGetAircraftString(manager,
+        "sim/aircraft/view/acf_ui_name",
+        "sim/aircraft/view/acf_descrip"
+    );
+    
+    try {
+        metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
+    } catch (...) {
+        metadata.num_engines = 0;
+    }
+    
+    try {
+        if (metadata.num_engines > 0) {
+            float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
+            metadata.total_power = pmax * metadata.num_engines;
+        }
+    } catch (...) {
+        metadata.total_power = 0;
+    }
+    
+    metadataLoaded = true;
+}
+
 bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
@@ -76,7 +110,7 @@ bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     // Seuil réduit pour une détection plus rapide
     if (agl_feet > 30.0f && ias_knots > 40.0f) {
         takeoffCounter++;
-        // Confirmation en 3 secondes au lieu de 7
+        // Confirmation en 3 secondes
         return takeoffCounter >= 3;
     } else {
         takeoffCounter = 0;
@@ -100,42 +134,54 @@ bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
 }
 
 void FlightDataCollector::collectData(DataRefManager& manager) {
+    // Charger les métadonnées dès le premier appel (si pas encore chargé)
+    if (!metadataLoaded) {
+        loadMetadata(manager);
+    }
+
     // 1. Détecter le décollage
     bool takeoffJustDetected = false;
     if (!flightActive && isTakeoffDetected(manager)) {
         flightActive = true;
         takeoffCounter = 0;
         takeoffJustDetected = true;
+        
         // Prendre le timestamp IMMEDIATEMENT à la première détection
         metadata.takeoff_time = generateTimestamp();
+        
+        // Générer le nom de fichier
+        std::string dir = getOutputDirectory();
+        std::string timestamp = metadata.takeoff_time;
+        std::string safeTimestamp = timestamp;
+        std::replace(safeTimestamp.begin(), safeTimestamp.end(), ':', '-');
+        currentFilePath = dir + "/" + safeTimestamp + ".geojson";
+        
+        // Ouvrir le fichier et écrire l'en-tête
+        currentFile.open(currentFilePath, std::ios::out | std::ios::trunc);
+        if (!currentFile.is_open()) {
+            // Erreur d'ouverture, désactiver l'enregistrement
+            flightActive = false;
+            return;
+        }
+        
+        // Écrire l'en-tête GeoJSON
+        currentFile << "{\n";
+        currentFile << "  \"type\": \"FeatureCollection\",\n";
+        currentFile << "  \"metadata\": {\n";
+        currentFile << "    \"aircraft_icao\": \"" << metadata.aircraft_icao << "\",\n";
+        currentFile << "    \"aircraft_model\": \"" << metadata.aircraft_model << "\",\n";
+        currentFile << "    \"num_engines\": " << metadata.num_engines << ",\n";
+        currentFile << "    \"total_power\": " << metadata.total_power << ",\n";
+        currentFile << "    \"takeoff_time\": \"" << metadata.takeoff_time << "\"\n";
+        currentFile << "  },\n";
+        currentFile << "  \"features\": [\n";
+        
+        // Vider le buffer de points (au cas où)
+        pointsBuffer.clear();
     }
 
-    // 2. Si en vol, collecter les données
+    // 2. Si en vol, collecter et écrire les données
     if (flightActive) {
-        // Si on vient de détecter le décollage OU si les métadonnées avion sont vides, les relire
-        if (takeoffJustDetected || metadata.aircraft_icao.empty() || metadata.aircraft_model.empty()) {
-            // Essayer plusieurs datarefs pour ICAO
-            metadata.aircraft_icao = tryGetAircraftString(manager, 
-                "sim/aircraft/view/acf_ICAO",
-                "sim/aircraft/engine/acf_ICAO"
-            );
-            
-            // Essayer plusieurs datarefs pour le modèle
-            metadata.aircraft_model = tryGetAircraftString(manager,
-                "sim/aircraft/view/acf_ui_name",
-                "sim/aircraft/view/acf_descrip"
-            );
-            
-            // Lire les autres métadonnées
-            if (metadata.num_engines == 0) {
-                metadata.num_engines = manager.getIntDataRef("sim/aircraft/engine/acf_num_engines");
-            }
-            if (metadata.total_power == 0 && metadata.num_engines > 0) {
-                float pmax = manager.getFloatDataRef("sim/aircraft/engine/acf_pmax");
-                metadata.total_power = pmax * metadata.num_engines;
-            }
-        }
-
         FlightPoint point;
         point.longitude = manager.getFloatDataRef("sim/flightmodel/position/longitude");
         point.latitude = manager.getFloatDataRef("sim/flightmodel/position/latitude");
@@ -148,12 +194,73 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
         point.timestamp = generateTimestamp();
 
-        buffer.push_back(point);
+        // Stocker le point pour la LineString finale
+        pointsBuffer.push_back(point);
+
+        // Écrire le point dans le fichier (directement, sans bufferiser)
+        if (currentFile.is_open()) {
+            // Ajouter une virgule si ce n'est pas le premier point
+            if (pointsBuffer.size() > 1) {
+                currentFile << ",\n";
+            }
+            
+            currentFile << "    {\n";
+            currentFile << "      \"type\": \"Feature\",\n";
+            currentFile << "      \"geometry\": {\n";
+            currentFile << "        \"type\": \"Point\",\n";
+            currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]\n";
+            currentFile << "      },\n";
+            currentFile << "      \"properties\": {\n";
+            currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
+            currentFile << "        \"elevation_msl\": " << point.elevation_msl << ",\n";
+            currentFile << "        \"true_heading\": " << point.true_heading << ",\n";
+            currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
+            currentFile << "        \"ias\": " << point.ias << ",\n";
+            currentFile << "        \"gs\": " << point.gs << ",\n";
+            currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << "\n";
+            currentFile << "      }\n";
+            currentFile << "    }";
+            
+            // Ne pas fermer ici, on continue à écrire
+        }
 
         // 3. Détecter l'atterrissage
         if (isLandingDetected(manager)) {
             flightActive = false;
             landingCounter = 0;
+            
+            // Écrire la LineString finale et fermer le fichier
+            if (currentFile.is_open() && pointsBuffer.size() >= 2) {
+                currentFile << ",\n";
+                currentFile << "    {\n";
+                currentFile << "      \"type\": \"Feature\",\n";
+                currentFile << "      \"geometry\": {\n";
+                currentFile << "        \"type\": \"LineString\",\n";
+                currentFile << "        \"coordinates\": [\n";
+                for (size_t i = 0; i < pointsBuffer.size(); ++i) {
+                    const auto& p = pointsBuffer[i];
+                    currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
+                    if (i < pointsBuffer.size() - 1) {
+                        currentFile << ",";
+                    }
+                    currentFile << "\n";
+                }
+                currentFile << "        ]\n";
+                currentFile << "      }\n";
+                currentFile << "    }\n";
+                currentFile << "  ]\n";
+                currentFile << "}\n";
+                currentFile.close();
+            } else if (currentFile.is_open()) {
+                // Pas assez de points pour une LineString, juste fermer
+                currentFile << "\n  ]\n";
+                currentFile << "}\n";
+                currentFile.close();
+            }
+            
+            // Vider le buffer
+            pointsBuffer.clear();
+            currentFilePath.clear();
         }
     }
 }

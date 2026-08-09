@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <ctime>
+#include <fstream>
 #include "DataRefManager.hpp"
 
 struct FlightPoint {
@@ -33,22 +34,25 @@ public:
 
     void collectData(DataRefManager& manager);
     void writeToDisk(const std::string& outputDir, class GeoJSONWriter& writer);
-    void clearBuffer() { buffer.clear(); }
     bool isFlightActive() const { return flightActive; }
     const FlightMetadata& getMetadata() const { return metadata; }
-    const std::vector<FlightPoint>& getBuffer() const { return buffer; }
     std::string generateRandomPrefix() const;
     std::string getOutputDirectory() const;
+    std::string getCurrentFilePath() const { return currentFilePath; }
 
 private:
-    std::vector<FlightPoint> buffer;
+    std::vector<FlightPoint> pointsBuffer; // Buffer temporaire pour la LineString finale
     FlightMetadata metadata;
     bool flightActive = false;
+    bool metadataLoaded = false; // Pour savoir si on a déjà essayé de charger les métadonnées
     int takeoffCounter = 0;    // Compteur pour la détection (3s)
     int landingCounter = 0;    // Compteur pour la détection (7s)
+    std::string currentFilePath;
+    std::ofstream currentFile;
 
     bool isTakeoffDetected(DataRefManager& manager);
     bool isLandingDetected(DataRefManager& manager);
     std::string generateTimestamp() const;
     std::string tryGetAircraftString(DataRefManager& manager, const std::string& primary, const std::string& fallback) const;
+    void loadMetadata(DataRefManager& manager);
 };
