@@ -4,6 +4,7 @@
 #include <string>
 #include <ctime>
 #include <fstream>
+#include <chrono>
 #include "DataRefManager.hpp"
 
 struct FlightPoint {
@@ -42,14 +43,17 @@ public:
 private:
     FlightMetadata metadata;
     bool flightActive = false;
+    bool flightPaused = false;  // En pause au sol (atterrissage temporaire)
     int takeoffCounter = 0;    // Compteur pour la détection (3s)
-    int landingCounter = 0;    // Compteur pour la détection (7s)
+    int landingCounter = 0;    // Compteur pour la détection (5s)
     std::string currentFilePath;
     std::ofstream currentFile;
     bool firstPointWritten = false; // Pour gérer les virgules dans le LineString
+    std::chrono::time_point<std::chrono::system_clock> groundContactTime; // Heure du contact sol
 
     bool isTakeoffDetected(DataRefManager& manager);
     bool isLandingDetected(DataRefManager& manager);
+    bool isFlightEnded(DataRefManager& manager); // Vérifie si le vol est vraiment terminé
     std::string generateTimestamp() const;
     std::string tryGetAircraftString(DataRefManager& manager, const std::string& primary, const std::string& fallback) const;
 };

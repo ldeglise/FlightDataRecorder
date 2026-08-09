@@ -83,9 +83,6 @@ bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     int onground = manager.getIntDataRef("sim/flightmodel/position/onground");
     
     // Détection universelle : AGL > 10 pieds ET onground == 0 pendant 3 secondes
-    // - AGL > 10 pieds (~3m) évite les déclenchements intempestifs
-    // - onground == 0 confirme qu'on est bien en vol
-    // Fonctionne pour : avions, ULM, hélicos (en montée), jets
     if (agl_feet > 10.0f && onground == 0) {
         takeoffCounter++;
         return takeoffCounter >= 3;
@@ -96,15 +93,10 @@ bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
 }
 
 bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
-    float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
     int onground = manager.getIntDataRef("sim/flightmodel/position/onground");
     
     // Détection d'atterrissage : onground == 1 ET vitesse très faible
-    // - onground == 1 : l'appareil est au contact du sol
-    // - ias < 20 km/h : évite les fausses détections pendant le roulage
-    // - Confirmation sur 5 secondes pour éviter les rebonds
-    // Fonctionne pour : avions, ULM, hélicos (qui se posent vraiment)
     if (onground == 1 && ias < 20.0f) {
         landingCounter++;
         return landingCounter >= 5;
@@ -112,6 +104,15 @@ bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
         landingCounter = 0;
         return false;
     }
+}
+
+bool FlightDataCollector::isFlightEnded(DataRefManager& manager) {
+    // Vérifie si le vol est vraiment terminé (5 minutes au sol sans redécollage)
+    auto now = std::chrono::system_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(now - groundContactTime);
+    
+    // Si on est au sol depuis plus de 5 minutes, considérer le vol comme terminé
+    return elapsed.count() >= 5;
 }
 
 void FlightDataCollector::collectData(DataRefManager& manager) {
@@ -141,9 +142,12 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         // Garder la valeur précédente si erreur
     }
 
-    // 1. Détecter le décollage
+    int onground = manager.getIntDataRef("sim/flightmodel/position/onground");
+
+    // 1. Détecter le décollage (initial ou après une pause)
     if (!flightActive && isTakeoffDetected(manager)) {
         flightActive = true;
+        flightPaused = false;
         takeoffCounter = 0;
         firstPointWritten = false;
         
@@ -177,92 +181,110 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         currentFile << "  },\n";
         currentFile << "  \"features\": [\n";
         
-        // Début du LineString (sera complété au fur et à mesure)
+        // Début du LineString
         currentFile << "    {\n";
         currentFile << "      \"type\": \"Feature\",\n";
         currentFile << "      \"geometry\": {\n";
         currentFile << "        \"type\": \"LineString\",\n";
         currentFile << "        \"coordinates\": [\n";
         
-        // Forcer le flush
         currentFile.flush();
     }
 
-    // 2. Si en vol, collecter et écrire les données
+    // 2. Gestion de l'état en vol
     if (flightActive) {
-        FlightPoint point;
-        point.longitude = manager.getFloatDataRef("sim/flightmodel/position/longitude");
-        point.latitude = manager.getFloatDataRef("sim/flightmodel/position/latitude");
-        point.elevation_msl = manager.getFloatDataRef("sim/flightmodel/position/elevation");
-        point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
-        point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
-        
-        // X-Plane fournit les vitesses en km/h - stocker sans conversion
-        point.ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
-        point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
-        
-        point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
-        point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
-        point.timestamp = generateTimestamp();
-
-        // Écrire le point dans le fichier
-        if (currentFile.is_open()) {
-            // Écrire la coordonnée pour le LineString
-            if (!firstPointWritten) {
-                firstPointWritten = true;
-            } else {
-                currentFile << ",\n";
+        // Détecter un atterrissage
+        if (isLandingDetected(manager)) {
+            // Premier atterrissage détecté
+            if (!flightPaused) {
+                flightPaused = true;
+                groundContactTime = std::chrono::system_clock::now();
             }
-            currentFile << "          [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]";
             
-            // Écrire le Point Feature
-            currentFile << ",\n";
-            currentFile << "    {\n";
-            currentFile << "      \"type\": \"Feature\",\n";
-            currentFile << "      \"geometry\": {\n";
-            currentFile << "        \"type\": \"Point\",\n";
-            currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]\n";
-            currentFile << "      },\n";
-            currentFile << "      \"properties\": {\n";
-            currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
-            currentFile << "        \"elevation_msl\": " << point.elevation_msl << ",\n";
-            currentFile << "        \"true_heading\": " << point.true_heading << ",\n";
-            currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
-            currentFile << "        \"ias\": " << point.ias << ",\n";
-            currentFile << "        \"gs\": " << point.gs << ",\n";
-            currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << "\n";
-            currentFile << "      }\n";
-            currentFile << "    }";
-            
-            // Flush pour s'assurer que les données sont écrites
-            currentFile.flush();
+            // Vérifier si le vol est vraiment terminé (5 min au sol)
+            if (isFlightEnded(manager)) {
+                // Fermer le fichier, vol terminé
+                flightActive = false;
+                landingCounter = 0;
+                firstPointWritten = false;
+                
+                if (currentFile.is_open()) {
+                    currentFile << "\n";
+                    currentFile << "        ]\n";
+                    currentFile << "      }\n";
+                    currentFile << "    }\n";
+                    currentFile << "  ]\n";
+                    currentFile << "}\n";
+                    currentFile.flush();
+                    currentFile.close();
+                }
+                currentFilePath.clear();
+            }
+            // Sinon, on reste en pause (atterrissage temporaire)
+            return; // Ne pas écrire de points pendant la pause
+        }
+        
+        // Si on était en pause et qu'on redécolle
+        if (flightPaused && isTakeoffDetected(manager)) {
+            flightPaused = false;
+            takeoffCounter = 0;
+            // On ne réinitialise pas firstPointWritten pour continuer le LineString
+            return; // Le point sera écrit au prochain callback
         }
 
-        // 3. Détecter l'atterrissage
-        if (isLandingDetected(manager)) {
-            flightActive = false;
-            landingCounter = 0;
-            firstPointWritten = false;
+        // 3. Écrire les données (si pas en pause)
+        if (!flightPaused) {
+            FlightPoint point;
+            point.longitude = manager.getFloatDataRef("sim/flightmodel/position/longitude");
+            point.latitude = manager.getFloatDataRef("sim/flightmodel/position/latitude");
+            point.elevation_msl = manager.getFloatDataRef("sim/flightmodel/position/elevation");
+            point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
+            point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
             
-            // Fermer le LineString et le GeoJSON
+            // X-Plane fournit les vitesses en km/h - stocker sans conversion
+            point.ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
+            point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
+            
+            point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
+            point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
+            point.timestamp = generateTimestamp();
+
+            // Écrire le point dans le fichier
             if (currentFile.is_open()) {
-                currentFile << "\n";
-                currentFile << "        ]\n";
+                // Écrire la coordonnée pour le LineString
+                if (!firstPointWritten) {
+                    firstPointWritten = true;
+                } else {
+                    currentFile << ",\n";
+                }
+                currentFile << "          [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]";
+                
+                // Écrire le Point Feature
+                currentFile << ",\n";
+                currentFile << "    {\n";
+                currentFile << "      \"type\": \"Feature\",\n";
+                currentFile << "      \"geometry\": {\n";
+                currentFile << "        \"type\": \"Point\",\n";
+                currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]\n";
+                currentFile << "      },\n";
+                currentFile << "      \"properties\": {\n";
+                currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
+                currentFile << "        \"elevation_msl\": " << point.elevation_msl << ",\n";
+                currentFile << "        \"true_heading\": " << point.true_heading << ",\n";
+                currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
+                currentFile << "        \"ias\": " << point.ias << ",\n";
+                currentFile << "        \"gs\": " << point.gs << ",\n";
+                currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << "\n";
                 currentFile << "      }\n";
-                currentFile << "    }\n";
-                currentFile << "  ]\n";
-                currentFile << "}\n";
+                currentFile << "    }";
+                
                 currentFile.flush();
-                currentFile.close();
             }
-            
-            currentFilePath.clear();
         }
     }
 }
 
 std::string FlightDataCollector::generateRandomPrefix() const {
-    // Plus utilisé mais gardé pour compatibilité
     static const char alphanum[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     std::random_device rd;
     std::mt19937 gen(rd());
