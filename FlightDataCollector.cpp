@@ -99,13 +99,14 @@ bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
     float agl_feet = DataRefManager::metersToFeet(agl);
-    float ias_knots = DataRefManager::kmhToKnots(ias);
-
-    // Seuil réduit pour une détection plus rapide
-    if (agl_feet > 30.0f && ias_knots > 40.0f) {
+    
+    // X-Plane: indicated_airspeed est en NOEUDs (knots)
+    // Pour un Cessna 172, vitesse de rotation ~55-60 knots, décollage ~65-70 knots
+    // On détecte dès 45 knots avec AGL > 10 pieds
+    if (agl_feet > 10.0f && ias > 45.0f) {
         takeoffCounter++;
-        // Confirmation en 3 secondes
-        return takeoffCounter >= 3;
+        // Confirmation en 2 secondes pour une détection plus rapide
+        return takeoffCounter >= 2;
     } else {
         takeoffCounter = 0;
         return false;
@@ -116,9 +117,9 @@ bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     float ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
     float agl_feet = DataRefManager::metersToFeet(agl);
-    float ias_knots = DataRefManager::kmhToKnots(ias);
-
-    if (agl_feet < 10.0f && ias_knots < 30.0f) {
+    
+    // X-Plane: indicated_airspeed est en NOEUDs
+    if (agl_feet < 10.0f && ias < 30.0f) {
         landingCounter++;
         return landingCounter >= 7;
     } else {
@@ -191,7 +192,10 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         currentFile << "  },\n";
         currentFile << "  \"features\": [\n";
         
-        // Vider le buffer de points (au cas où)
+        // Forcer le flush
+        currentFile.flush();
+        
+        // Vider le buffer de points
         pointsBuffer.clear();
     }
 
@@ -203,8 +207,12 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         point.elevation_msl = manager.getFloatDataRef("sim/flightmodel/position/elevation");
         point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
         point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
+        
+        // X-Plane: indicated_airspeed et groundspeed sont en NOEUDS (knots)
+        // On les stocke telles quelles dans le GeoJSON
         point.ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
         point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
+        
         point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
         point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
         point.timestamp = generateTimestamp();
@@ -266,11 +274,13 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 currentFile << "    }\n";
                 currentFile << "  ]\n";
                 currentFile << "}\n";
+                currentFile.flush();
                 currentFile.close();
             } else if (currentFile.is_open()) {
                 // Pas assez de points pour une LineString, juste fermer
                 currentFile << "\n  ]\n";
                 currentFile << "}\n";
+                currentFile.flush();
                 currentFile.close();
             }
             
