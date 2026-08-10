@@ -13,15 +13,10 @@ FONCTIONNALITÉS
 - Enregistrement automatique des vols (détection de décollage/atterrissage)
 - Format GeoJSON compatible avec la plupart des outils SIG (QGIS, Google Earth, etc.)
 - Précision des coordonnées : 6 décimales (~10 cm)
-- Filtrage des données pour réduire les zigzags à basse vitesse
-- Métadonnées de vol incluses (heure de décollage, configuration avion)
 
 INSTALLATION
 ------------
-1. Copier le dossier du plugin dans :
-   - Windows : X-Plane 11/Resources/plugins/
-   - macOS : X-Plane 11/Resources/plugins/
-   - Linux : X-Plane 11/Resources/plugins/
+1. Copier le dossier du plugin dans : X-Plane/Resources/plugins/
 
 2. Lancer X-Plane
 
@@ -33,13 +28,12 @@ Aucune configuration nécessaire ! Le plugin fonctionne automatiquement :
 
 - Détection automatique du décollage (AGL > 10m pendant 10 secondes)
 - Détection automatique de l'atterrissage (AGL < 1m pendant 20 secondes)
-- Enregistrement des données toutes les 10 secondes
 
 FICHIERS GÉNÉRÉS
 ----------------
 Les fichiers sont enregistrés dans :
 - Windows : %USERPROFILE%\FlightDataRecorder\
-- macOS/Linux : ~/FlightDataRecorder/
+- macOS/Linux : ~/FlightDataRecorder/ 
 
 Format des fichiers :
   AAAA-MM-JJTHH-MM-SSZ.geojson
@@ -62,11 +56,6 @@ Pour chaque point :
 - Timestamp ISO 8601
 - Heure Zulu (HH:mm:ss)
 
-Métadonnées du vol :
-- Nombre de moteurs (seed)
-- Puissance totale (checksum)
-- Heure de décollage
-
 VISUALISATION DES DONNÉES
 -------------------------
 Vous pouvez visualiser les fichiers GeoJSON avec :
@@ -80,13 +69,17 @@ Vous pouvez visualiser les fichiers GeoJSON avec :
    - Convertir le GeoJSON en KML avec un outil en ligne
    - Ouvrir le fichier KML dans Google Earth
 
-3. Sites web :
+3. Google Earth web :
+   - Importer le fichier .geojson
+
+4. Sites web :
    - Utiliser des outils comme geojson.io pour visualiser en ligne
+
+5. N'importe quel outils pouvant traiter du GeoJSON
 
 TECHNIQUE
 --------
 - Précision : 6 décimales (~10 cm) pour les coordonnées
-- Lissage : Moyenne mobile sur 3 points pour la LineString
 - Format : GeoJSON RFC 7946
 - Encodage : UTF-8
 
@@ -103,6 +96,6 @@ Pour toute question ou problème, consulter le dépôt GitHub :
 https://github.com/ldeglise/FlightDataRecorder
 
 ================================================================================
-Version : 1.0
+Version : 1.0b1
 Date : 2026
 ================================================================================
