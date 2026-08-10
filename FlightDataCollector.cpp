@@ -137,10 +137,10 @@ bool FlightDataCollector::isTakeoffDetected(DataRefManager& manager) {
 bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
     float agl = manager.getFloatDataRef("sim/flightmodel/position/y_agl");
     
-    // Détection d'atterrissage : AGL < 1 mètre pendant 30 secondes
+    // Détection d'atterrissage : AGL < 1 mètre pendant 20 secondes
     if (agl < 1.0f) {
         landingCounter++;
-        return landingCounter >= 30;
+        return landingCounter >= 20;
     } else {
         landingCounter = 0;
         return false;
