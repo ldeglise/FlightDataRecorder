@@ -254,18 +254,6 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
     }
 }
 
-std::string FlightDataCollector::generateRandomPrefix() const {
-    static const char alphanum[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 25);
-    std::string prefix;
-    for (int i = 0; i < 4; ++i) {
-        prefix += alphanum[dis(gen)];
-    }
-    return prefix;
-}
-
 std::string FlightDataCollector::getOutputDirectory() const {
     fs::path home;
     #ifdef _WIN32

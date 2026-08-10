@@ -35,7 +35,6 @@ public:
     void collectData(DataRefManager& manager);
     bool isFlightActive() const { return flightActive; }
     const FlightMetadata& getMetadata() const { return metadata; }
-    std::string generateRandomPrefix() const;
     std::string getOutputDirectory() const;
     std::string getCurrentFilePath() const { return currentFilePath; }
 
