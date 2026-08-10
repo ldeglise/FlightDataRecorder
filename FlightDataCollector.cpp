@@ -17,7 +17,7 @@ FlightDataCollector::~FlightDataCollector() {
         // Écrire les points restants dans le buffer
         flushWriteBuffer();
         
-        // Écrire la LineString finale à partir du buffer
+        // Écrire la LineString finale à partir du buffer avec lissage
         if (!lineStringBuffer.empty() && lineStringBuffer.size() >= 2) {
             if (firstPointWritten) {
                 currentFile << ",\n";
@@ -27,13 +27,17 @@ FlightDataCollector::~FlightDataCollector() {
             currentFile << "      \"geometry\": {\n";
             currentFile << "        \"type\": \"LineString\",\n";
             currentFile << "        \"coordinates\": [\n";
-            for (size_t i = 0; i < lineStringBuffer.size(); ++i) {
-                const auto& coord = lineStringBuffer[i];
-                // Arrondi à 5 décimales pour lisser les zigzags
-                double roundedLon = roundTo5Decimals(coord.first);
-                double roundedLat = roundTo5Decimals(coord.second);
+            
+            // Appliquer le filtre de moyenne mobile pour lisser la trace
+            auto smoothedBuffer = applyMovingAverage(lineStringBuffer, 3);
+            
+            for (size_t i = 0; i < smoothedBuffer.size(); ++i) {
+                const auto& coord = smoothedBuffer[i];
+                // Arrondi à 6 décimales pour plus de précision
+                double roundedLon = roundTo6Decimals(coord.first);
+                double roundedLat = roundTo6Decimals(coord.second);
                 currentFile << "          [" << roundedLon << ", " << roundedLat << "]";
-                if (i < lineStringBuffer.size() - 1) {
+                if (i < smoothedBuffer.size() - 1) {
                     currentFile << ",";
                 }
                 currentFile << "\n";
@@ -64,9 +68,9 @@ void FlightDataCollector::flushWriteBuffer() {
             firstPointWritten = true;
         }
         
-        // Arrondi à 5 décimales pour lisser les zigzags
-        double roundedLon = roundTo5Decimals(point.longitude);
-        double roundedLat = roundTo5Decimals(point.latitude);
+        // Arrondi à 6 décimales pour plus de précision
+        double roundedLon = roundTo6Decimals(point.longitude);
+        double roundedLat = roundTo6Decimals(point.latitude);
         
         // Convertir les vitesses en km/h
         float ias_kmh = knotsToKmh(point.ias);
@@ -231,7 +235,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             landingCounter = 0;
             writeCounter = 0;
             
-            // Écrire la LineString finale à partir du buffer
+            // Écrire la LineString finale à partir du buffer avec lissage
             if (currentFile.is_open() && lineStringBuffer.size() >= 2) {
                 if (firstPointWritten) {
                     currentFile << ",\n";
@@ -241,13 +245,17 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 currentFile << "      \"geometry\": {\n";
                 currentFile << "        \"type\": \"LineString\",\n";
                 currentFile << "        \"coordinates\": [\n";
-                for (size_t i = 0; i < lineStringBuffer.size(); ++i) {
-                    const auto& coord = lineStringBuffer[i];
-                    // Arrondi à 5 décimales pour lisser les zigzags
-                    double roundedLon = roundTo5Decimals(coord.first);
-                    double roundedLat = roundTo5Decimals(coord.second);
+                
+                // Appliquer le filtre de moyenne mobile pour lisser la trace
+                auto smoothedBuffer = applyMovingAverage(lineStringBuffer, 3);
+                
+                for (size_t i = 0; i < smoothedBuffer.size(); ++i) {
+                    const auto& coord = smoothedBuffer[i];
+                    // Arrondi à 6 décimales pour plus de précision
+                    double roundedLon = roundTo6Decimals(coord.first);
+                    double roundedLat = roundTo6Decimals(coord.second);
                     currentFile << "          [" << roundedLon << ", " << roundedLat << "]";
-                    if (i < lineStringBuffer.size() - 1) {
+                    if (i < smoothedBuffer.size() - 1) {
                         currentFile << ",";
                     }
                     currentFile << "\n";

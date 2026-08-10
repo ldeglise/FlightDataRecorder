@@ -6,6 +6,7 @@
 #include <fstream>
 #include <chrono>
 #include <cmath>
+#include <algorithm>
 #include "DataRefManager.hpp"
 
 struct FlightPoint {
@@ -57,9 +58,67 @@ private:
     std::string convertZuluTime(float zulu_time_sec) const;
     void flushWriteBuffer();
     
-    // Utilitaire pour arrondir à 5 décimales (précision ~1 mètre)
-    static double roundTo5Decimals(double value) {
-        return std::round(value * 100000.0) / 100000.0;
+    // Utilitaire pour arrondir à 6 décimales (précision ~10 cm)
+    static double roundTo6Decimals(double value) {
+        return std::round(value * 1000000.0) / 1000000.0;
+    }
+    
+    // Applique une moyenne mobile pour lisser les coordonnées
+    // windowSize : nombre de points à prendre en compte pour le lissage
+    static std::vector<std::pair<double, double>> applyMovingAverage(
+        const std::vector<std::pair<double, double>>& buffer, 
+        int windowSize = 3) {
+        
+        if (buffer.empty() || windowSize <= 1) {
+            return buffer;
+        }
+        
+        std::vector<std::pair<double, double>> smoothed;
+        smoothed.reserve(buffer.size());
+        
+        // Conserver les premiers points inchangés (pas assez de données pour la moyenne)
+        int halfWindow = windowSize / 2;
+        for (int i = 0; i < std::min(halfWindow, static_cast<int>(buffer.size())); ++i) {
+            smoothed.push_back(buffer[i]);
+        }
+        
+        // Appliquer la moyenne mobile
+        for (size_t i = halfWindow; i < buffer.size() - halfWindow; ++i) {
+            double sumLon = 0.0;
+            double sumLat = 0.0;
+            int count = 0;
+            
+            for (int j = -halfWindow; j <= halfWindow; ++j) {
+                size_t idx = i + j;
+                if (idx < buffer.size()) {
+                    sumLon += buffer[idx].first;
+                    sumLat += buffer[idx].second;
+                    count++;
+                }
+            }
+            
+            if (count > 0) {
+                smoothed.emplace_back(sumLon / count, sumLat / count);
+            }
+        }
+        
+        // Conserver les derniers points inchangés
+        for (size_t i = std::max(static_cast<size_t>(buffer.size() - halfWindow), static_cast<size_t>(halfWindow)); 
+             i < buffer.size(); ++i) {
+            // Éviter les doublons
+            if (smoothed.size() <= i) {
+                smoothed.push_back(buffer[i]);
+            }
+        }
+        
+        // Si le lissage a réduit la taille, compléter avec les originaux
+        if (smoothed.size() < buffer.size()) {
+            for (size_t i = smoothed.size(); i < buffer.size(); ++i) {
+                smoothed.push_back(buffer[i]);
+            }
+        }
+        
+        return smoothed;
     }
     
     // Conversions de vitesse
