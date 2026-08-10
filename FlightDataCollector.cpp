@@ -9,7 +9,7 @@
 
 namespace fs = std::filesystem;
 
-FlightDataCollector::FlightDataCollector() : firstPointWritten(false) = default;
+FlightDataCollector::FlightDataCollector() : firstPointWritten(false) {}
 
 FlightDataCollector::~FlightDataCollector() {
     // Fermer le fichier si encore ouvert
