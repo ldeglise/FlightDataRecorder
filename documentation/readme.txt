@@ -35,7 +35,7 @@ Les fichiers sont enregistrés dans :
 - Windows : %USERPROFILE%\FlightDataRecorder\
 
 Format des fichiers :
-  AAAA-MM-JJTHH-MM-SSZ.geojson
+  AAAA-MM-JJTHH-MM-SSZ.geojson (heure du système)
   (ex: 2026-08-10T14-30-20Z.geojson)
 
 Chaque fichier contient :
@@ -52,8 +52,7 @@ Pour chaque point :
 - Cap magnétique (degrés)
 - Vitesse indiquée (IAS) en km/h
 - Vitesse sol (GS) en km/h
-- Timestamp ISO 8601
-- Heure Zulu (HH:mm:ss)
+- Heure Zulu (HH:mm:ss) - heure du simulateur
 
 VISUALISATION DES DONNÉES
 -------------------------
@@ -137,7 +136,7 @@ Files are saved in:
 - Windows: %USERPROFILE%\FlightDataRecorder\
 
 File format:
-  YYYY-MM-DDTHH-MM-SSZ.geojson
+  YYYY-MM-DDTHH-MM-SSZ.geojson (system time)
   (e.g., 2026-08-10T14-30-20Z.geojson)
 
 Each file contains:
@@ -154,8 +153,7 @@ For each point:
 - Magnetic heading (degrees)
 - Indicated Airspeed (IAS) in km/h
 - Ground Speed (GS) in km/h
-- ISO 8601 timestamp
-- Zulu time (HH:mm:ss)
+- Zulu time (HH:mm:ss) - Simulator time
 
 DATA VISUALIZATION
 -------------------
