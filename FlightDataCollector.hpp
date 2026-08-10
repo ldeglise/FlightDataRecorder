@@ -43,16 +43,13 @@ private:
     FlightMetadata metadata;
     std::vector<FlightPoint> pointsBuffer; // Buffer pour la LineString finale
     bool flightActive = false;
-    bool flightPaused = false;  // En pause au sol (atterrissage temporaire)
     int takeoffCounter = 0;    // Compteur pour la détection (10s)
     int landingCounter = 0;    // Compteur pour la détection (30s)
     std::string currentFilePath;
     std::ofstream currentFile;
-    std::chrono::time_point<std::chrono::system_clock> groundContactTime;
 
     bool isTakeoffDetected(DataRefManager& manager);
     bool isLandingDetected(DataRefManager& manager);
-    bool isFlightEnded() const;
     std::string generateTimestamp() const;
     std::string convertZuluTime(float zulu_time_sec) const;
 };

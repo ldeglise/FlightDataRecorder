@@ -110,15 +110,6 @@ bool FlightDataCollector::isLandingDetected(DataRefManager& manager) {
     }
 }
 
-bool FlightDataCollector::isFlightEnded() const {
-    // Vérifie si le vol est vraiment terminé (2 minutes au sol sans redécollage)
-    auto now = std::chrono::system_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(now - groundContactTime);
-    
-    // Si on est au sol depuis plus de 2 minutes, considérer le vol comme terminé
-    return elapsed.count() >= 2;
-}
-
 void FlightDataCollector::collectData(DataRefManager& manager) {
     // Lire les métadonnées moteur (seed = num_engines, checksum = total_power en watts)
     try {
@@ -139,7 +130,6 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
     // 1. Détecter le décollage
     if (!flightActive && isTakeoffDetected(manager)) {
         flightActive = true;
-        flightPaused = false;
         takeoffCounter = 0;
         
         // Prendre le timestamp IMMEDIATEMENT à la première détection
@@ -180,101 +170,82 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
     if (flightActive) {
         // Détecter un atterrissage
         if (isLandingDetected(manager)) {
-            // Premier atterrissage détecté
-            if (!flightPaused) {
-                flightPaused = true;
-                groundContactTime = std::chrono::system_clock::now();
-            }
+            // Fermer le fichier, vol terminé
+            flightActive = false;
+            landingCounter = 0;
             
-            // Vérifier si le vol est vraiment terminé (2 min au sol)
-            if (isFlightEnded()) {
-                // Fermer le fichier, vol terminé
-                flightActive = false;
-                landingCounter = 0;
-                
-                // Écrire la LineString finale à partir du buffer
-                if (currentFile.is_open() && pointsBuffer.size() >= 2) {
-                    currentFile << ",\n";
-                    currentFile << "    {\n";
-                    currentFile << "      \"type\": \"Feature\",\n";
-                    currentFile << "      \"geometry\": {\n";
-                    currentFile << "        \"type\": \"LineString\",\n";
-                    currentFile << "        \"coordinates\": [\n";
-                    for (size_t i = 0; i < pointsBuffer.size(); ++i) {
-                        const auto& p = pointsBuffer[i];
-                        currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
-                        if (i < pointsBuffer.size() - 1) {
-                            currentFile << ",";
-                        }
-                        currentFile << "\n";
-                    }
-                    currentFile << "        ]\n";
-                    currentFile << "      }\n";
-                    currentFile << "    }\n";
-                }
-                
-                currentFile << "  ]\n";
-                currentFile << "}\n";
-                currentFile.flush();
-                currentFile.close();
-                
-                currentFilePath.clear();
-            }
-            // Sinon, on reste en pause (atterrissage temporaire)
-            return;
-        }
-        
-        // Si on était en pause et qu'on redécolle
-        if (flightPaused && isTakeoffDetected(manager)) {
-            flightPaused = false;
-            takeoffCounter = 0;
-            return;
-        }
-
-        // 3. Écrire les données (si pas en pause)
-        if (!flightPaused) {
-            FlightPoint point;
-            point.longitude = manager.getFloatDataRef("sim/flightmodel/position/longitude");
-            point.latitude = manager.getFloatDataRef("sim/flightmodel/position/latitude");
-            point.elevation_msl = manager.getFloatDataRef("sim/flightmodel/position/elevation");
-            point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
-            point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
-            
-            point.ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
-            point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
-            
-            point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
-            point.zulu_time = convertZuluTime(point.zulu_time_sec);
-            point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
-            point.timestamp = generateTimestamp();
-
-            pointsBuffer.push_back(point);
-
-            if (currentFile.is_open()) {
-                if (!pointsBuffer.empty() && pointsBuffer.size() > 1) {
-                    currentFile << ",\n";
-                }
-                
+            // Écrire la LineString finale à partir du buffer
+            if (currentFile.is_open() && pointsBuffer.size() >= 2) {
+                currentFile << ",\n";
                 currentFile << "    {\n";
                 currentFile << "      \"type\": \"Feature\",\n";
                 currentFile << "      \"geometry\": {\n";
-                currentFile << "        \"type\": \"Point\",\n";
-                currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]\n";
-                currentFile << "      },\n";
-                currentFile << "      \"properties\": {\n";
-                currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
-                currentFile << "        \"elevation_msl\": " << point.elevation_msl << ",\n";
-                currentFile << "        \"true_heading\": " << point.true_heading << ",\n";
-                currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
-                currentFile << "        \"ias\": " << point.ias << ",\n";
-                currentFile << "        \"gs\": " << point.gs << ",\n";
-                currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << ",\n";
-                currentFile << "        \"zulu_time\": \"" << point.zulu_time << "\"\n";
+                currentFile << "        \"type\": \"LineString\",\n";
+                currentFile << "        \"coordinates\": [\n";
+                for (size_t i = 0; i < pointsBuffer.size(); ++i) {
+                    const auto& p = pointsBuffer[i];
+                    currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
+                    if (i < pointsBuffer.size() - 1) {
+                        currentFile << ",";
+                    }
+                    currentFile << "\n";
+                }
+                currentFile << "        ]\n";
                 currentFile << "      }\n";
-                currentFile << "    }";
-                
-                currentFile.flush();
+                currentFile << "    }\n";
             }
+            
+            currentFile << "  ]\n";
+            currentFile << "}\n";
+            currentFile.flush();
+            currentFile.close();
+            
+            currentFilePath.clear();
+            return;
+        }
+
+        // 3. Écrire les données
+        FlightPoint point;
+        point.longitude = manager.getFloatDataRef("sim/flightmodel/position/longitude");
+        point.latitude = manager.getFloatDataRef("sim/flightmodel/position/latitude");
+        point.elevation_msl = manager.getFloatDataRef("sim/flightmodel/position/elevation");
+        point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
+        point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
+        
+        point.ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
+        point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
+        
+        point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
+        point.zulu_time = convertZuluTime(point.zulu_time_sec);
+        point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
+        point.timestamp = generateTimestamp();
+
+        pointsBuffer.push_back(point);
+
+        if (currentFile.is_open()) {
+            if (!pointsBuffer.empty() && pointsBuffer.size() > 1) {
+                currentFile << ",\n";
+            }
+            
+            currentFile << "    {\n";
+            currentFile << "      \"type\": \"Feature\",\n";
+            currentFile << "      \"geometry\": {\n";
+            currentFile << "        \"type\": \"Point\",\n";
+            currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]\n";
+            currentFile << "      },\n";
+            currentFile << "      \"properties\": {\n";
+            currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
+            currentFile << "        \"elevation_msl\": " << point.elevation_msl << ",\n";
+            currentFile << "        \"true_heading\": " << point.true_heading << ",\n";
+            currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
+            currentFile << "        \"ias\": " << point.ias << ",\n";
+            currentFile << "        \"gs\": " << point.gs << ",\n";
+            currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << ",\n";
+            currentFile << "        \"zulu_time\": \"" << point.zulu_time << "\"\n";
+            currentFile << "      }\n";
+            currentFile << "    }";
+            
+            currentFile.flush();
         }
     }
 }
