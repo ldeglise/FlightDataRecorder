@@ -27,7 +27,10 @@ FlightDataCollector::~FlightDataCollector() {
             currentFile << "        \"coordinates\": [\n";
             for (size_t i = 0; i < lineStringBuffer.size(); ++i) {
                 const auto& coord = lineStringBuffer[i];
-                currentFile << "          [" << coord.first << ", " << coord.second << "]";
+                // Arrondi à 5 décimales pour lisser les zigzags
+                double roundedLon = roundTo5Decimals(coord.first);
+                double roundedLat = roundTo5Decimals(coord.second);
+                currentFile << "          [" << roundedLon << ", " << roundedLat << "]";
                 if (i < lineStringBuffer.size() - 1) {
                     currentFile << ",";
                 }
@@ -57,11 +60,15 @@ void FlightDataCollector::flushWriteBuffer() {
             currentFile << ",\n";
         }
         
+        // Arrondi à 5 décimales pour lisser les zigzags
+        double roundedLon = roundTo5Decimals(point.longitude);
+        double roundedLat = roundTo5Decimals(point.latitude);
+        
         currentFile << "    {\n";
         currentFile << "      \"type\": \"Feature\",\n";
         currentFile << "      \"geometry\": {\n";
         currentFile << "        \"type\": \"Point\",\n";
-        currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << "]\n";
+        currentFile << "        \"coordinates\": [" << roundedLon << ", " << roundedLat << "]\n";
         currentFile << "      },\n";
         currentFile << "      \"properties\": {\n";
         currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
@@ -225,7 +232,10 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 currentFile << "        \"coordinates\": [\n";
                 for (size_t i = 0; i < lineStringBuffer.size(); ++i) {
                     const auto& coord = lineStringBuffer[i];
-                    currentFile << "          [" << coord.first << ", " << coord.second << "]";
+                    // Arrondi à 5 décimales pour lisser les zigzags
+                    double roundedLon = roundTo5Decimals(coord.first);
+                    double roundedLat = roundTo5Decimals(coord.second);
+                    currentFile << "          [" << roundedLon << ", " << roundedLat << "]";
                     if (i < lineStringBuffer.size() - 1) {
                         currentFile << ",";
                     }

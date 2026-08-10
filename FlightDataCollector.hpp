@@ -5,6 +5,7 @@
 #include <ctime>
 #include <fstream>
 #include <chrono>
+#include <cmath>
 #include "DataRefManager.hpp"
 
 struct FlightPoint {
@@ -44,7 +45,7 @@ private:
     std::vector<std::pair<double, double>> lineStringBuffer; // Buffer pour la LineString finale (longitude, latitude)
     bool flightActive = false;
     int takeoffCounter = 0;    // Compteur pour la détection (10s)
-    int landingCounter = 0;    // Compteur pour la détection (30s)
+    int landingCounter = 0;    // Compteur pour la détection (20s)
     int writeCounter = 0;      // Compteur pour la bufferisation des écritures (10s)
     std::string currentFilePath;
     std::ofstream currentFile;
@@ -54,4 +55,9 @@ private:
     std::string generateTimestamp() const;
     std::string convertZuluTime(float zulu_time_sec) const;
     void flushWriteBuffer();
+    
+    // Utilitaire pour arrondir à 5 décimales (précision ~1 mètre)
+    static double roundTo5Decimals(double value) {
+        return std::round(value * 100000.0) / 100000.0;
+    }
 };
