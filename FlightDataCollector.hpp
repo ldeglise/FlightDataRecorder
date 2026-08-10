@@ -14,8 +14,8 @@ struct FlightPoint {
     double elevation_msl;      // Altitude barométrique (mètres)
     float true_heading;        // Cap vrai (degrés)
     float magnetic_heading;    // Cap magnétique (degrés)
-    float ias;                 // Vitesse indiquée (km/h, valeur brute X-Plane)
-    float gs;                  // Vitesse sol (km/h, valeur brute X-Plane)
+    float ias;                 // Vitesse indiquée (en knots, valeur brute X-Plane)
+    float gs;                  // Vitesse sol (en m/s, valeur brute X-Plane)
     float zulu_time_sec;       // Secondes depuis minuit Zulu
     int local_date_days;       // Jours depuis le 1er janvier (local)
     std::string timestamp;     // ISO 8601 (ex: "2026-08-08T14:30:20Z")
@@ -47,6 +47,7 @@ private:
     int takeoffCounter = 0;    // Compteur pour la détection (10s)
     int landingCounter = 0;    // Compteur pour la détection (20s)
     int writeCounter = 0;      // Compteur pour la bufferisation des écritures (10s)
+    bool firstPointWritten = false; // Pour gérer les virgules entre les Features
     std::string currentFilePath;
     std::ofstream currentFile;
 
@@ -60,4 +61,8 @@ private:
     static double roundTo5Decimals(double value) {
         return std::round(value * 100000.0) / 100000.0;
     }
+    
+    // Conversions de vitesse
+    static float knotsToKmh(float knots) { return knots * 1.852f; }
+    static float msToKmh(float ms) { return ms * 3.6f; }
 };

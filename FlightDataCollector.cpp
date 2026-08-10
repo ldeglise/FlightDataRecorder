@@ -9,7 +9,7 @@
 
 namespace fs = std::filesystem;
 
-FlightDataCollector::FlightDataCollector() = default;
+FlightDataCollector::FlightDataCollector() : firstPointWritten(false) = default;
 
 FlightDataCollector::~FlightDataCollector() {
     // Fermer le fichier si encore ouvert
@@ -19,7 +19,9 @@ FlightDataCollector::~FlightDataCollector() {
         
         // Écrire la LineString finale à partir du buffer
         if (!lineStringBuffer.empty() && lineStringBuffer.size() >= 2) {
-            currentFile << ",\n";
+            if (firstPointWritten) {
+                currentFile << ",\n";
+            }
             currentFile << "    {\n";
             currentFile << "      \"type\": \"Feature\",\n";
             currentFile << "      \"geometry\": {\n";
@@ -56,13 +58,19 @@ void FlightDataCollector::flushWriteBuffer() {
         const auto& point = writeBuffer[i];
         
         // Ajouter une virgule avant chaque point sauf le premier
-        if (i > 0) {
+        if (firstPointWritten) {
             currentFile << ",\n";
+        } else {
+            firstPointWritten = true;
         }
         
         // Arrondi à 5 décimales pour lisser les zigzags
         double roundedLon = roundTo5Decimals(point.longitude);
         double roundedLat = roundTo5Decimals(point.latitude);
+        
+        // Convertir les vitesses en km/h
+        float ias_kmh = knotsToKmh(point.ias);
+        float gs_kmh = msToKmh(point.gs);
         
         currentFile << "    {\n";
         currentFile << "      \"type\": \"Feature\",\n";
@@ -75,8 +83,8 @@ void FlightDataCollector::flushWriteBuffer() {
         currentFile << "        \"elevation_msl\": " << point.elevation_msl << ",\n";
         currentFile << "        \"true_heading\": " << point.true_heading << ",\n";
         currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
-        currentFile << "        \"ias\": " << point.ias << ",\n";
-        currentFile << "        \"gs\": " << point.gs << ",\n";
+        currentFile << "        \"ias_kmh\": " << ias_kmh << ",\n";
+        currentFile << "        \"gs_kmh\": " << gs_kmh << ",\n";
         currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << ",\n";
         currentFile << "        \"zulu_time\": \"" << point.zulu_time << "\"\n";
         currentFile << "      }\n";
@@ -178,6 +186,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
         writeCounter = 0;
         writeBuffer.clear();
         lineStringBuffer.clear();
+        firstPointWritten = false;
         
         // Prendre le timestamp IMMEDIATEMENT à la première détection
         metadata.takeoff_time = generateTimestamp();
@@ -224,7 +233,9 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             
             // Écrire la LineString finale à partir du buffer
             if (currentFile.is_open() && lineStringBuffer.size() >= 2) {
-                currentFile << ",\n";
+                if (firstPointWritten) {
+                    currentFile << ",\n";
+                }
                 currentFile << "    {\n";
                 currentFile << "      \"type\": \"Feature\",\n";
                 currentFile << "      \"geometry\": {\n";
@@ -244,6 +255,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 currentFile << "        ]\n";
                 currentFile << "      }\n";
                 currentFile << "    }\n";
+                firstPointWritten = true;
             }
             
             currentFile << "  ]\n";
@@ -254,6 +266,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             currentFilePath.clear();
             lineStringBuffer.clear();
             writeBuffer.clear();
+            firstPointWritten = false;
             return;
         }
 
