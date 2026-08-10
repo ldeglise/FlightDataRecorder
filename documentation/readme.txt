@@ -1,5 +1,5 @@
 ================================================================================
-FLIGHT DATA RECORDER - Plugin X-Plane
+FLIGHT DATA RECORDER - Plugin X-Plane 12 - Windows 10 et 11
 ================================================================================
 
 DESCRIPTION
@@ -33,7 +33,6 @@ FICHIERS GÉNÉRÉS
 ----------------
 Les fichiers sont enregistrés dans :
 - Windows : %USERPROFILE%\FlightDataRecorder\
-- macOS/Linux : ~/FlightDataRecorder/ 
 
 Format des fichiers :
   AAAA-MM-JJTHH-MM-SSZ.geojson
@@ -75,7 +74,7 @@ Vous pouvez visualiser les fichiers GeoJSON avec :
 4. Sites web :
    - Utiliser des outils comme geojson.io pour visualiser en ligne
 
-5. N'importe quel outils pouvant traiter du GeoJSON
+5. N'importe quels outils pouvant traiter du GeoJSON
 
 TECHNIQUE
 --------
@@ -102,7 +101,7 @@ Date : 2026
 
 
 ================================================================================
-FLIGHT DATA RECORDER - X-Plane Plugin (English Translation)
+FLIGHT DATA RECORDER - X-Plane Plugin 12 - Windows 10 and 11
 ================================================================================
 
 DESCRIPTION
@@ -136,7 +135,6 @@ GENERATED FILES
 ----------------
 Files are saved in:
 - Windows: %USERPROFILE%\FlightDataRecorder\
-- macOS/Linux: ~/FlightDataRecorder/
 
 File format:
   YYYY-MM-DDTHH-MM-SSZ.geojson
@@ -178,7 +176,7 @@ You can visualize GeoJSON files with:
 4. Websites:
    - Use tools like geojson.io to visualize online
 
-5. Any tool that supports GeoJSON
+5. Any tools that supports GeoJSON
 
 TECHNICAL DETAILS
 -----------------
