@@ -29,6 +29,22 @@ int DataRefManager::getIntDataRef(const std::string& datarefName) {
     return XPLMGetDatai(ref);
 }
 
+PositionData DataRefManager::getPositionData() {
+    PositionData pos;
+    
+    // Récupérer les DataRefs pour latitude, longitude et elevation
+    XPLMDataRef latRef = getDataRef("sim/flightmodel/position/latitude");
+    XPLMDataRef lonRef = getDataRef("sim/flightmodel/position/longitude");
+    XPLMDataRef elevRef = getDataRef("sim/flightmodel/position/elevation");
+    
+    // Lire les valeurs de manière atomique (simultanée)
+    pos.latitude = XPLMGetDataf(latRef);
+    pos.longitude = XPLMGetDataf(lonRef);
+    pos.elevation_msl = XPLMGetDataf(elevRef);
+    
+    return pos;
+}
+
 std::string DataRefManager::getStringDataRef(const std::string& datarefName) {
     XPLMDataRef ref = getDataRef(datarefName);
     char buffer[256];

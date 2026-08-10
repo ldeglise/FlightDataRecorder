@@ -25,7 +25,7 @@ FlightDataCollector::~FlightDataCollector() {
             currentFile << "        \"coordinates\": [\n";
             for (size_t i = 0; i < pointsBuffer.size(); ++i) {
                 const auto& p = pointsBuffer[i];
-                currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
+                currentFile << "          [" << p.longitude << ", " << p.latitude << "]";
                 if (i < pointsBuffer.size() - 1) {
                     currentFile << ",";
                 }
@@ -184,7 +184,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
                 currentFile << "        \"coordinates\": [\n";
                 for (size_t i = 0; i < pointsBuffer.size(); ++i) {
                     const auto& p = pointsBuffer[i];
-                    currentFile << "          [" << p.longitude << ", " << p.latitude << ", " << p.elevation_msl << "]";
+                    currentFile << "          [" << p.longitude << ", " << p.latitude << "]";
                     if (i < pointsBuffer.size() - 1) {
                         currentFile << ",";
                     }
@@ -206,9 +206,13 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
 
         // 3. Écrire les données
         FlightPoint point;
-        point.longitude = manager.getFloatDataRef("sim/flightmodel/position/longitude");
-        point.latitude = manager.getFloatDataRef("sim/flightmodel/position/latitude");
-        point.elevation_msl = manager.getFloatDataRef("sim/flightmodel/position/elevation");
+        
+        // Récupérer latitude, longitude et elevation_msl de manière simultanée
+        PositionData posData = manager.getPositionData();
+        point.latitude = posData.latitude;
+        point.longitude = posData.longitude;
+        point.elevation_msl = posData.elevation_msl;
+        
         point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
         point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
         
@@ -231,7 +235,7 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             currentFile << "      \"type\": \"Feature\",\n";
             currentFile << "      \"geometry\": {\n";
             currentFile << "        \"type\": \"Point\",\n";
-            currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << ", " << point.elevation_msl << "]\n";
+            currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << "]\n";
             currentFile << "      },\n";
             currentFile << "      \"properties\": {\n";
             currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
