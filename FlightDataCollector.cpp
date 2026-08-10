@@ -1,7 +1,6 @@
 #include "FlightDataCollector.hpp"
 
 #include <filesystem>
-#include <random>
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
@@ -15,18 +14,21 @@ FlightDataCollector::FlightDataCollector() = default;
 FlightDataCollector::~FlightDataCollector() {
     // Fermer le fichier si encore ouvert
     if (currentFile.is_open()) {
+        // Écrire les points restants dans le buffer
+        flushWriteBuffer();
+        
         // Écrire la LineString finale à partir du buffer
-        if (!pointsBuffer.empty() && pointsBuffer.size() >= 2) {
+        if (!lineStringBuffer.empty() && lineStringBuffer.size() >= 2) {
             currentFile << ",\n";
             currentFile << "    {\n";
             currentFile << "      \"type\": \"Feature\",\n";
             currentFile << "      \"geometry\": {\n";
             currentFile << "        \"type\": \"LineString\",\n";
             currentFile << "        \"coordinates\": [\n";
-            for (size_t i = 0; i < pointsBuffer.size(); ++i) {
-                const auto& p = pointsBuffer[i];
-                currentFile << "          [" << p.longitude << ", " << p.latitude << "]";
-                if (i < pointsBuffer.size() - 1) {
+            for (size_t i = 0; i < lineStringBuffer.size(); ++i) {
+                const auto& coord = lineStringBuffer[i];
+                currentFile << "          [" << coord.first << ", " << coord.second << "]";
+                if (i < lineStringBuffer.size() - 1) {
                     currentFile << ",";
                 }
                 currentFile << "\n";
@@ -40,6 +42,41 @@ FlightDataCollector::~FlightDataCollector() {
         currentFile.flush();
         currentFile.close();
     }
+}
+
+void FlightDataCollector::flushWriteBuffer() {
+    if (!currentFile.is_open() || writeBuffer.empty()) {
+        return;
+    }
+
+    for (size_t i = 0; i < writeBuffer.size(); ++i) {
+        const auto& point = writeBuffer[i];
+        
+        // Ajouter une virgule avant chaque point sauf le premier
+        if (i > 0) {
+            currentFile << ",\n";
+        }
+        
+        currentFile << "    {\n";
+        currentFile << "      \"type\": \"Feature\",\n";
+        currentFile << "      \"geometry\": {\n";
+        currentFile << "        \"type\": \"Point\",\n";
+        currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << "]\n";
+        currentFile << "      },\n";
+        currentFile << "      \"properties\": {\n";
+        currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
+        currentFile << "        \"elevation_msl\": " << point.elevation_msl << ",\n";
+        currentFile << "        \"true_heading\": " << point.true_heading << ",\n";
+        currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
+        currentFile << "        \"ias\": " << point.ias << ",\n";
+        currentFile << "        \"gs\": " << point.gs << ",\n";
+        currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << ",\n";
+        currentFile << "        \"zulu_time\": \"" << point.zulu_time << "\"\n";
+        currentFile << "      }\n";
+        currentFile << "    }";
+    }
+    currentFile.flush();
+    writeBuffer.clear();
 }
 
 std::string FlightDataCollector::generateTimestamp() const {
@@ -131,6 +168,9 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
     if (!flightActive && isTakeoffDetected(manager)) {
         flightActive = true;
         takeoffCounter = 0;
+        writeCounter = 0;
+        writeBuffer.clear();
+        lineStringBuffer.clear();
         
         // Prendre le timestamp IMMEDIATEMENT à la première détection
         metadata.takeoff_time = generateTimestamp();
@@ -150,42 +190,43 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             return;
         }
         
-        // Écrire l'en-tête GeoJSON avec noms obscurs
+        // Écrire l'en-tête GeoJSON
         currentFile << "{\n";
         currentFile << "  \"type\": \"FeatureCollection\",\n";
         currentFile << "  \"metadata\": {\n";
-        currentFile << "    \"seed\": " << metadata.seed << ",\n";        // Nombre de moteurs
-        currentFile << "    \"checksum\": " << metadata.checksum << ",\n"; // Puissance totale en watts
+        currentFile << "    \"seed\": " << metadata.seed << ",\n";
+        currentFile << "    \"checksum\": " << metadata.checksum << ",\n";
         currentFile << "    \"takeoff_time\": \"" << metadata.takeoff_time << "\"\n";
         currentFile << "  },\n";
         currentFile << "  \"features\": [\n";
         
         currentFile.flush();
-        
-        // Vider le buffer de points
-        pointsBuffer.clear();
     }
 
     // 2. Gestion de l'état en vol
     if (flightActive) {
         // Détecter un atterrissage
         if (isLandingDetected(manager)) {
+            // Écrire les points restants dans le buffer
+            flushWriteBuffer();
+            
             // Fermer le fichier, vol terminé
             flightActive = false;
             landingCounter = 0;
+            writeCounter = 0;
             
             // Écrire la LineString finale à partir du buffer
-            if (currentFile.is_open() && pointsBuffer.size() >= 2) {
+            if (currentFile.is_open() && lineStringBuffer.size() >= 2) {
                 currentFile << ",\n";
                 currentFile << "    {\n";
                 currentFile << "      \"type\": \"Feature\",\n";
                 currentFile << "      \"geometry\": {\n";
                 currentFile << "        \"type\": \"LineString\",\n";
                 currentFile << "        \"coordinates\": [\n";
-                for (size_t i = 0; i < pointsBuffer.size(); ++i) {
-                    const auto& p = pointsBuffer[i];
-                    currentFile << "          [" << p.longitude << ", " << p.latitude << "]";
-                    if (i < pointsBuffer.size() - 1) {
+                for (size_t i = 0; i < lineStringBuffer.size(); ++i) {
+                    const auto& coord = lineStringBuffer[i];
+                    currentFile << "          [" << coord.first << ", " << coord.second << "]";
+                    if (i < lineStringBuffer.size() - 1) {
                         currentFile << ",";
                     }
                     currentFile << "\n";
@@ -201,55 +242,37 @@ void FlightDataCollector::collectData(DataRefManager& manager) {
             currentFile.close();
             
             currentFilePath.clear();
+            lineStringBuffer.clear();
+            writeBuffer.clear();
             return;
         }
 
-        // 3. Écrire les données
-        FlightPoint point;
-        
-        // Récupérer latitude, longitude et elevation_msl de manière simultanée
+        // 3. Collecter les données
         PositionData posData = manager.getPositionData();
-        point.latitude = posData.latitude;
+        FlightPoint point;
         point.longitude = posData.longitude;
+        point.latitude = posData.latitude;
         point.elevation_msl = posData.elevation_msl;
-        
         point.true_heading = manager.getFloatDataRef("sim/flightmodel/position/psi");
         point.magnetic_heading = manager.getFloatDataRef("sim/flightmodel/position/mag_psi");
-        
         point.ias = manager.getFloatDataRef("sim/flightmodel/position/indicated_airspeed");
         point.gs = manager.getFloatDataRef("sim/flightmodel/position/groundspeed");
-        
         point.zulu_time_sec = manager.getFloatDataRef("sim/time/zulu_time_sec");
         point.zulu_time = convertZuluTime(point.zulu_time_sec);
         point.local_date_days = manager.getIntDataRef("sim/time/local_date_days");
         point.timestamp = generateTimestamp();
 
-        pointsBuffer.push_back(point);
-
-        if (currentFile.is_open()) {
-            if (!pointsBuffer.empty() && pointsBuffer.size() > 1) {
-                currentFile << ",\n";
-            }
-            
-            currentFile << "    {\n";
-            currentFile << "      \"type\": \"Feature\",\n";
-            currentFile << "      \"geometry\": {\n";
-            currentFile << "        \"type\": \"Point\",\n";
-            currentFile << "        \"coordinates\": [" << point.longitude << ", " << point.latitude << "]\n";
-            currentFile << "      },\n";
-            currentFile << "      \"properties\": {\n";
-            currentFile << "        \"timestamp\": \"" << point.timestamp << "\",\n";
-            currentFile << "        \"elevation_msl\": " << point.elevation_msl << ",\n";
-            currentFile << "        \"true_heading\": " << point.true_heading << ",\n";
-            currentFile << "        \"magnetic_heading\": " << point.magnetic_heading << ",\n";
-            currentFile << "        \"ias\": " << point.ias << ",\n";
-            currentFile << "        \"gs\": " << point.gs << ",\n";
-            currentFile << "        \"zulu_time_sec\": " << point.zulu_time_sec << ",\n";
-            currentFile << "        \"zulu_time\": \"" << point.zulu_time << "\"\n";
-            currentFile << "      }\n";
-            currentFile << "    }";
-            
-            currentFile.flush();
+        // Ajouter au buffer pour la LineString (coordonnées uniquement)
+        lineStringBuffer.emplace_back(point.longitude, point.latitude);
+        
+        // Ajouter au buffer d'écriture (toutes les données)
+        writeBuffer.push_back(point);
+        writeCounter++;
+        
+        // Écrire toutes les 10 secondes
+        if (writeCounter >= 10) {
+            flushWriteBuffer();
+            writeCounter = 0;
         }
     }
 }

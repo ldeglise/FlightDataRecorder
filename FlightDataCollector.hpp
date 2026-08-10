@@ -40,10 +40,12 @@ public:
 
 private:
     FlightMetadata metadata;
-    std::vector<FlightPoint> pointsBuffer; // Buffer pour la LineString finale
+    std::vector<FlightPoint> writeBuffer; // Buffer pour les points à écrire (10 secondes de données)
+    std::vector<std::pair<double, double>> lineStringBuffer; // Buffer pour la LineString finale (longitude, latitude)
     bool flightActive = false;
     int takeoffCounter = 0;    // Compteur pour la détection (10s)
     int landingCounter = 0;    // Compteur pour la détection (30s)
+    int writeCounter = 0;      // Compteur pour la bufferisation des écritures (10s)
     std::string currentFilePath;
     std::ofstream currentFile;
 
@@ -51,4 +53,5 @@ private:
     bool isLandingDetected(DataRefManager& manager);
     std::string generateTimestamp() const;
     std::string convertZuluTime(float zulu_time_sec) const;
+    void flushWriteBuffer();
 };
