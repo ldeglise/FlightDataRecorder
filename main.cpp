@@ -43,7 +43,7 @@ PLUGIN_API int XPluginStart(
     char *outName,
     char *outSig,
     char *outDesc) {
-    strcpy(outName, "Flight Data Recorder");
+    strcpy(outName, "Flight Data Recorder v1.0b2");
     strcpy(outSig, "conconlolo.FlightDataRecorder");
     strcpy(outDesc, "A plugin that records flight data and writes to GeoJSON.");
 
