@@ -1,0 +1,123 @@
+name: Build FlightDataRecorder
+
+on:
+  push:
+    tags:
+      - 'v*'  # Déclenché uniquement pour les tags comme v1.0, v1.1, etc.
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.28.x'
+
+      # Install dependencies for Linux
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential wget unzip libstdc++fs-dev zip
+
+      # Install dependencies for macOS
+      - name: Install dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install wget zip
+
+      # Install zip for Windows
+      - name: Install zip (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install zip -y
+
+      # Download and extract X-Plane SDK 430 into SDK/
+      - name: Download and extract X-Plane SDK
+        run: |
+          wget https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip -O XPSDK430.zip
+          unzip -q XPSDK430.zip -d .
+          if [ ! -d "SDK" ]; then
+            echo "Erreur : Le dossier SDK/ n'a pas été trouvé après extraction."
+            ls -R
+            exit 1
+          fi
+
+      # Configure and build with CMake
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      # Copy .xpl files to a shared directory
+      - name: Copy artifacts to shared directory
+        run: |
+          mkdir -p FlightDataRecorder/64
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            cp "plugin/FlightDataRecorder/64/win.xpl" FlightDataRecorder/64/
+          elif [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            cp "plugin/FlightDataRecorder/64/lin.xpl" FlightDataRecorder/64/
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            cp "plugin/FlightDataRecorder/64/mac.xpl" FlightDataRecorder/64/
+          fi
+
+      # Upload .xpl files as artifacts (temporary, for cross-job sharing)
+      - name: Upload .xpl artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xpl-files-${{ matrix.os }}
+          path: FlightDataRecorder/64/
+
+  # Job to combine all artifacts into a single ZIP
+  combine:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all .xpl artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: xpl-files-*
+
+      - name: Combine .xpl files into FlightDataRecorder/64/
+        run: |
+          mkdir -p FlightDataRecorder/64
+          # Copy all .xpl files from downloaded artifacts
+          find artifacts -name "*.xpl" -exec cp {} FlightDataRecorder/64/ \;
+          # Copy README.txt from documentation/ or root
+          if [ -f "documentation/README.txt" ]; then
+            cp "documentation/README.txt" FlightDataRecorder/
+          elif [ -f "README.txt" ]; then
+            cp "README.txt" FlightDataRecorder/
+          else
+            echo "Avertissement : Aucun fichier README.txt trouvé."
+          fi
+
+      - name: Zip the universal package
+        run: zip -r FlightDataRecorder.zip FlightDataRecorder/
+
+      - name: Upload universal ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlightDataRecorder-universal
+          path: FlightDataRecorder.zip
+
+      # Publish to GitHub Release
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: FlightDataRecorder.zip
+          tag_name: ${{ github.ref_name }}  # Utilise le nom du tag (ex: v1.0)
+          name: FlightDataRecorder ${{ github.ref_name }}
