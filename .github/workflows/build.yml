@@ -27,12 +27,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential wget unzip zip
+          sudo apt-get install -y build-essential unzip zip
 
       # Install dependencies for macOS
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
-        run: brew install wget zip
+        run: brew install zip
 
       # Install zip for Windows
       - name: Install zip (Windows)
@@ -41,9 +41,9 @@ jobs:
 
       # Download and extract X-Plane SDK 430 into SDK/
       - name: Download and extract X-Plane SDK
-        shell: bash  # Force l'utilisation de Bash sur Windows
+        shell: bash
         run: |
-          wget https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip -O XPSDK430.zip
+          curl -L -o XPSDK430.zip https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip
           unzip -q XPSDK430.zip -d .
           if [ ! -d "SDK" ]; then
             echo "Erreur : Le dossier SDK/ n'a pas été trouvé après extraction."
@@ -53,16 +53,16 @@ jobs:
 
       # Configure and build with CMake
       - name: Configure CMake
-        shell: bash  # Force l'utilisation de Bash sur Windows
+        shell: bash
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        shell: bash  # Force l'utilisation de Bash sur Windows
+        shell: bash
         run: cmake --build build --config Release
 
       # Copy .xpl files to a shared directory
       - name: Copy artifacts to shared directory
-        shell: bash  # Force l'utilisation de Bash sur Windows
+        shell: bash
         run: |
           mkdir -p FlightDataRecorder/64
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
@@ -98,9 +98,7 @@ jobs:
       - name: Combine .xpl files into FlightDataRecorder/64/
         run: |
           mkdir -p FlightDataRecorder/64
-          # Copy all .xpl files from downloaded artifacts
           find artifacts -name "*.xpl" -exec cp {} FlightDataRecorder/64/ \;
-          # Copy README.txt from documentation/ or root
           if [ -f "documentation/README.txt" ]; then
             cp "documentation/README.txt" FlightDataRecorder/
           elif [ -f "README.txt" ]; then
