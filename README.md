@@ -1,4 +1,4 @@
-# FLIGHT DATA RECORDER - Plugin X-Plane 12 - Windows 10 et 11
+# FLIGHT DATA RECORDER - Plugin X-Plane 12 - Windows, Linux, Mac
 
 ## OVERVIEW
 
@@ -32,6 +32,8 @@ No configuration required! The plugin works automatically:
 Files are saved in:
 
 - Windows: %USERPROFILE%\FlightDataRecorder\
+- Linux : ~/FlightDataRecorder/
+- Mac : ~/FlightDataRecorder/
 
 File format:
   YYYY-MM-DDTHH-MM-SSZ.geojson (system time)
@@ -124,6 +126,8 @@ Aucune configuration nécessaire ! Le plugin fonctionne automatiquement :
 Les fichiers sont enregistrés dans :
 
 - Windows : %USERPROFILE%\FlightDataRecorder\
+- Linux : ~/FlightDataRecorder/
+- Mac : ~/FlightDataRecorder/
 
 Format des fichiers :
   AAAA-MM-JJTHH-MM-SSZ.geojson (heure du système)
