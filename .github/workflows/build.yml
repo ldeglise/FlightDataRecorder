@@ -22,12 +22,12 @@ jobs:
         with:
           cmake-version: '3.28.x'
 
-      # Install dependencies for Linux
+      # Install dependencies for Linux (corrigé pour Ubuntu 24.04)
       - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential wget unzip libstdc++fs-dev zip
+          sudo apt-get install -y build-essential wget unzip zip
 
       # Install dependencies for macOS
       - name: Install dependencies (macOS)
@@ -119,5 +119,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: FlightDataRecorder.zip
-          tag_name: ${{ github.ref_name }}  # Utilise le nom du tag (ex: v1.0)
+          tag_name: ${{ github.ref_name }}
           name: FlightDataRecorder ${{ github.ref_name }}
