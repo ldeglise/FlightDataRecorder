@@ -94,6 +94,7 @@ jobs:
           name: xpl-files-${{ matrix.os }}
           path: FlightDataRecorder/64/
 
+  # Job to combine all artifacts into a single ZIP
   combine:
     needs: build
     runs-on: ubuntu-latest
@@ -129,9 +130,12 @@ jobs:
           name: FlightDataRecorder-universal
           path: FlightDataRecorder.zip
 
+      # Publish to GitHub Release (version v2 + GITHUB_TOKEN)
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: FlightDataRecorder.zip
           tag_name: ${{ github.ref_name }}
           name: FlightDataRecorder ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
