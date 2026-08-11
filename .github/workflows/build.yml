@@ -22,7 +22,7 @@ jobs:
         with:
           cmake-version: '3.28.x'
 
-      # Install dependencies for Linux (corrigé pour Ubuntu 24.04)
+      # Install dependencies for Linux
       - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -41,6 +41,7 @@ jobs:
 
       # Download and extract X-Plane SDK 430 into SDK/
       - name: Download and extract X-Plane SDK
+        shell: bash  # Force l'utilisation de Bash sur Windows
         run: |
           wget https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip -O XPSDK430.zip
           unzip -q XPSDK430.zip -d .
@@ -52,13 +53,16 @@ jobs:
 
       # Configure and build with CMake
       - name: Configure CMake
+        shell: bash  # Force l'utilisation de Bash sur Windows
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
+        shell: bash  # Force l'utilisation de Bash sur Windows
         run: cmake --build build --config Release
 
       # Copy .xpl files to a shared directory
       - name: Copy artifacts to shared directory
+        shell: bash  # Force l'utilisation de Bash sur Windows
         run: |
           mkdir -p FlightDataRecorder/64
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
