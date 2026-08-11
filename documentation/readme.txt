@@ -93,11 +93,6 @@ CONTACT
 Pour toute question ou problème, consulter le dépôt GitHub :
 https://github.com/ldeglise/FlightDataRecorder
 
-================================================================================
-Version : 1.0b1
-Date : 2026
-================================================================================
-
 
 ================================================================================
 FLIGHT DATA RECORDER - X-Plane Plugin 12 - Windows 10 and 11
@@ -193,8 +188,3 @@ CONTACT
 -------
 For any questions or issues, visit the GitHub repository:
 https://github.com/ldeglise/FlightDataRecorder
-
-================================================================================
-Version: 1.0b1
-Date: 2026
-================================================================================
