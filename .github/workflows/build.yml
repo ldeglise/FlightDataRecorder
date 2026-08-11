@@ -115,10 +115,10 @@ jobs:
           find artifacts -name "*.xpl" -exec cp {} FlightDataRecorder/64/ \;
           if [ -f "documentation/readme.txt" ]; then
             cp "documentation/readme.txt" FlightDataRecorder/
-          elif [ -f "readme.txt" ]; then
-            cp "readme.txt" FlightDataRecorder/
+          elif [ -f "README.md" ]; then
+            cp "README.md" FlightDataRecorder/
           else
-            echo "Avertissement : Aucun fichier readme.txt trouvé."
+            echo "Avertissement : Aucun fichier readme trouvé."
           fi
 
       - name: Zip the universal package
