@@ -113,12 +113,12 @@ jobs:
         run: |
           mkdir -p FlightDataRecorder/64
           find artifacts -name "*.xpl" -exec cp {} FlightDataRecorder/64/ \;
-          if [ -f "documentation/README.txt" ]; then
-            cp "documentation/README.txt" FlightDataRecorder/
-          elif [ -f "README.txt" ]; then
-            cp "README.txt" FlightDataRecorder/
+          if [ -f "documentation/readme.txt" ]; then
+            cp "documentation/readme.txt" FlightDataRecorder/
+          elif [ -f "readme.txt" ]; then
+            cp "readme.txt" FlightDataRecorder/
           else
-            echo "Avertissement : Aucun fichier README.txt trouvé."
+            echo "Avertissement : Aucun fichier readme.txt trouvé."
           fi
 
       - name: Zip the universal package
