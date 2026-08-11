@@ -3,7 +3,7 @@ name: Build FlightDataRecorder
 on:
   push:
     tags:
-      - 'v*'  # Déclenché uniquement pour les tags comme v1.0, v1.1, etc.
+      - 'v*'
 
 jobs:
   build:
@@ -51,10 +51,15 @@ jobs:
             exit 1
           fi
 
-      # Configure and build with CMake
+      # Configure CMake (Windows: Visual Studio, Linux/macOS: default)
       - name: Configure CMake
         shell: bash
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            cmake -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release
+          else
+            cmake -B build -DCMAKE_BUILD_TYPE=Release
+          fi
 
       - name: Build
         shell: bash
@@ -73,14 +78,13 @@ jobs:
             cp "plugin/FlightDataRecorder/64/mac.xpl" FlightDataRecorder/64/
           fi
 
-      # Upload .xpl files as artifacts (temporary, for cross-job sharing)
+      # Upload .xpl files as artifacts
       - name: Upload .xpl artifacts
         uses: actions/upload-artifact@v4
         with:
           name: xpl-files-${{ matrix.os }}
           path: FlightDataRecorder/64/
 
-  # Job to combine all artifacts into a single ZIP
   combine:
     needs: build
     runs-on: ubuntu-latest
@@ -116,7 +120,6 @@ jobs:
           name: FlightDataRecorder-universal
           path: FlightDataRecorder.zip
 
-      # Publish to GitHub Release
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
