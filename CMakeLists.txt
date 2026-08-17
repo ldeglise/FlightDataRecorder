@@ -33,6 +33,11 @@ if(WIN32)
             LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/64"
     )
     target_compile_definitions(FlightDataRecorder PUBLIC APL=0 IBM=1 LIN=0)
+    # Lier statiquement les runtimes GCC/MinGW (libgcc, libstdc++) afin que
+    # win.xpl soit autonome et ne depende pas de libgcc_s_seh-1.dll /
+    # libstdc++-6.dll, qui peuvent etre absentes ou d'une version incompatible
+    # sur le systeme de l'utilisateur (erreur X-Plane 127).
+    target_link_options(FlightDataRecorder PRIVATE -static-libgcc -static-libstdc++)
     target_link_libraries(FlightDataRecorder PRIVATE 
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPLM_64.lib"
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPWidgets_64.lib"
@@ -50,10 +55,13 @@ if(UNIX AND NOT APPLE)
             LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/64"
     )
     target_compile_definitions(FlightDataRecorder PUBLIC APL=0 IBM=0 LIN=1)
+    # Lier statiquement le runtime libstdc++ pour eviter tout conflit de version
+    # avec la libstdc++.so.6 embarquee par X-Plane 12 sur Linux, qui peut etre
+    # plus ancienne que celle du compilateur utilise pour le build.
+    target_link_options(FlightDataRecorder PRIVATE -static-libgcc -static-libstdc++)
     target_link_libraries(FlightDataRecorder PRIVATE 
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Lin/XPLM_64.so"
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Lin/XPWidgets_64.so"
-        stdc++fs  # Pour std::filesystem sous Linux
     )
 endif()
 

@@ -2,6 +2,8 @@ name: Build FlightDataRecorder
 
 on:
   push:
+    branches:
+      - 'fix/**'  # Déclenché sur les branches de correctif pour valider le build
     tags:
       - 'v*'  # Déclenché uniquement pour les tags comme v1.0, v1.1, etc.
 
