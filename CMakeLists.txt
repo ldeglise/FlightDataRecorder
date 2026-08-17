@@ -33,11 +33,11 @@ if(WIN32)
             LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/plugin/FlightDataRecorder/64"
     )
     target_compile_definitions(FlightDataRecorder PUBLIC APL=0 IBM=1 LIN=0)
-    # Lier statiquement les runtimes GCC/MinGW (libgcc, libstdc++) afin que
-    # win.xpl soit autonome et ne depende pas de libgcc_s_seh-1.dll /
-    # libstdc++-6.dll, qui peuvent etre absentes ou d'une version incompatible
-    # sur le systeme de l'utilisateur (erreur X-Plane 127).
-    target_link_options(FlightDataRecorder PRIVATE -static-libgcc -static-libstdc++)
+    # Lier statiquement les runtimes GCC/MinGW (libgcc, libstdc++, libwinpthread)
+    # afin que win.xpl soit autonome et ne depende pas de libgcc_s_seh-1.dll,
+    # libstdc++-6.dll ni libwinpthread-1.dll, qui peuvent etre absentes ou d'une
+    # version incompatible sur le systeme de l'utilisateur (erreur X-Plane 127).
+    target_link_options(FlightDataRecorder PRIVATE -static-libgcc -static-libstdc++ -static-libwinpthread -static)
     target_link_libraries(FlightDataRecorder PRIVATE 
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPLM_64.lib"
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPWidgets_64.lib"
