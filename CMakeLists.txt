@@ -37,7 +37,9 @@ if(WIN32)
     # afin que win.xpl soit autonome et ne depende pas de libgcc_s_seh-1.dll,
     # libstdc++-6.dll ni libwinpthread-1.dll, qui peuvent etre absentes ou d'une
     # version incompatible sur le systeme de l'utilisateur (erreur X-Plane 127).
-    target_link_options(FlightDataRecorder PRIVATE -static-libgcc -static-libstdc++ -static-libwinpthread -static)
+    # -static-libwinpthread n'existe pas dans cette version de MinGW ; -static
+    # couvre libwinpthread en plus des autres runtimes.
+    target_link_options(FlightDataRecorder PRIVATE -static-libgcc -static-libstdc++ -static)
     target_link_libraries(FlightDataRecorder PRIVATE 
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPLM_64.lib"
         "${CMAKE_SOURCE_DIR}/SDK/Libraries/Win/XPWidgets_64.lib"
