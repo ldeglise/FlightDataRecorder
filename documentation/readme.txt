@@ -1,5 +1,5 @@
 ================================================================================
-FLIGHT DATA RECORDER - Plugin X-Plane 12 - Windows, Linux, Mac
+FLIGHT DATA RECORDER V1.0 - Plugin X-Plane 12 - Windows, Linux, Mac
 ================================================================================
 
 DESCRIPTION
@@ -97,7 +97,7 @@ https://github.com/ldeglise/FlightDataRecorder
 
 
 ================================================================================
-FLIGHT DATA RECORDER - X-Plane Plugin 12
+FLIGHT DATA RECORDER V1.0 - X-Plane Plugin 12
 ================================================================================
 
 DESCRIPTION
